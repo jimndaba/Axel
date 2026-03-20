@@ -1,0 +1,97 @@
+#include "axelpch.h"
+#include "Application.h"
+#include "Timer.h"
+
+#include "rendering/backends/GraphicsContext.h"
+#include "rendering/Renderer.h"
+
+Axel::Application::Application()
+{
+	m_Logger = std::make_unique<Logger>();
+	m_Logger->Init();
+	m_Logger->Info("Axel Engine: Booting...");
+
+	m_EventBus = std::make_unique<Eventbus>();
+	
+	m_Platform = std::make_unique<AxPlatform>();
+	m_Platform->Init({"Axel Engine:...",1280, 720,false});
+	AXLOG_INFO("Platform Layer: %s Detected" , m_Platform->GetPlatformName());
+
+	LoadGameDLL("AxelSandbox.dll");
+
+	Init();
+}
+
+Axel::Application::~Application()
+{
+}
+
+void Axel::Application::Run()
+{
+	AxTimer timer;
+	OnStart();
+
+	while (m_Running)
+	{
+		float dt = timer.GetDeltaTime();
+
+		if (!m_Platform->ProcessMessages())
+		{
+			m_Running = false;
+		}
+
+
+		OnUpdate(dt);	
+		//Render System can Kick off Here
+
+		mRenderer->BeginFrame();
+
+		
+
+		mRenderer->EndFrame();	
+	}
+
+	OnShutdown();
+	Shutdown();
+}
+
+void Axel::Application::Quit()
+{
+	m_Platform->Shutdown();
+	Eventbus::Clear();
+}
+
+void Axel::Application::Shutdown()
+{
+	Renderer::Shutdown();
+	mContext->Shutdown();
+}
+
+void Axel::Application::LoadGameDLL(const std::string& path)
+{
+	m_GameLib = m_Platform->LoadSharedLibrary(path.c_str());
+	
+	if (m_GameLib) {
+		typedef Axel::IGame* (*CreateGameFn)();
+		auto CreateGame = (CreateGameFn)m_Platform->GetSymbol(m_GameLib, "CreateGame");
+		if (CreateGame) {
+			m_ActiveGame = CreateGame();
+
+
+			GameContext ctx;
+			ctx.Bus = m_EventBus.get();
+			ctx.Log = m_Logger.get();
+			m_ActiveGame->OnLoad(ctx);
+		}
+	}
+
+}
+
+void Axel::Application::Init()
+{
+
+	// 2. Create the Graphics Context (VulkanContext)
+	mContext = GraphicsContext::Create(m_Platform->GetNativeWindow());
+	mContext->Init();
+	Renderer::Init(mContext.get());
+}
