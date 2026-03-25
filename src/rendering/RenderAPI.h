@@ -29,6 +29,8 @@ namespace Axel
         virtual void Clear() = 0;
         virtual void SubmitCommandBuffer(GraphicsContext* context, Ref<RenderCommandBuffer> commandBuffer) = 0;
         virtual void BindDescriptorSet(GraphicsContext* context, uint32_t setIndex, const Ref<DescriptorSet>& set, const Ref<Pipeline>& pipeline) = 0;
+
+        virtual void DrawQuad(GraphicsContext* context, const Mat4& transform, const Ref<Texture2D>& texture) = 0;
     private:
         static API s_API;
     };

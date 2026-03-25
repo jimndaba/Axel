@@ -8,8 +8,9 @@
 namespace Axel {
 
     struct Buffer;
-    class Texture;
+    class Texture2D;
     struct TextureSpecification;
+    class VulkanContext;
 
     struct DeviceCapabilities {
         std::string RendererName;
@@ -27,11 +28,13 @@ namespace Axel {
 
         // Resource Creation (Abstracted)
         virtual Ref<Buffer> CreateVertexBuffer(uint32_t size) = 0;
-        virtual Ref<Texture> CreateTexture(const TextureSpecification& spec) = 0;
+        virtual Ref<Texture2D> CreateTexture(const TextureSpecification& spec) = 0;
 
         // Internal singleton-style access
         static GraphicsDevice& Get() { return *s_Instance; }
 
+		virtual void SubmitTextureToGPU(const VulkanContext& context, Ref<Texture2D>& texture) = 0;
+        virtual void DestroyTexture(const VulkanContext& context, Ref<Texture2D>& texture) = 0;
     protected:
         static GraphicsDevice* s_Instance;
     };

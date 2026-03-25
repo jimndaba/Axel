@@ -41,7 +41,13 @@ namespace Axel
         // Resource Creation (Abstracted)
         Ref<Buffer> CreateVertexBuffer(uint32_t size);
         Ref<Buffer> CreateIndexBuffer(uint32_t size);
-        Ref<Texture> CreateTexture(const TextureSpecification& spec);
+        Ref<Texture2D> CreateTexture(const TextureSpecification& spec);
+
+		void DestroyTexture(const VulkanContext& context, Ref<Texture2D>& texture);
+
+        void SubmitTextureToGPU(const VulkanContext& context, Ref<Texture2D>& texture) override;
+        void TransitionImageLayout(VkCommandBuffer cb, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout);
+        void CopyBufferToImage(VkCommandBuffer cb, VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
 
     private:
         VkPhysicalDevice m_PhysicalDevice;

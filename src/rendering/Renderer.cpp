@@ -3,9 +3,11 @@
 #include "RenderCommandBuffer.h"
 #include "backends/GraphicsContext.h"
 #include "backends/vulkanbackend/VulkanContext.h"
+#include "Texture.h"
+#include <core/Logger.h>
 
 std::unique_ptr<Axel::RendererData> Axel::Renderer::s_Data;
-
+std::shared_ptr<Axel::Texture2D> Axel::Renderer::s_WhiteTexture = nullptr;
 
 void Axel::Renderer::Init(GraphicsContext* context)
 {
@@ -14,6 +16,11 @@ void Axel::Renderer::Init(GraphicsContext* context)
     RendererAPI::SetAPI(RendererAPI::API::Vulkan);
     s_Data->API = RendererAPI::Create();
     s_Data->API->Init();
+
+    // Create a 1x1 white buffer
+    uint32_t white = 0xffffffff;
+    s_WhiteTexture = Texture2D::Create(1, 1, (unsigned char*)&white);
+    AXLOG_INFO("Renderer: White Texture Initialized.");
 }
 
 void Axel::Renderer::Shutdown()
@@ -107,4 +114,14 @@ void Axel::Renderer::DrawIndexed(uint32_t indexCount)
     auto commandBuffer = s_Data->ActiveCommandBuffer;
     // Parameters: CommandBuffer, IndexCount, InstanceCount, FirstIndex, VertexOffset, FirstInstance
     s_Data->ActiveCommandBuffer->DrawIndexed(indexCount, 1);
+}
+
+void Axel::Renderer::DrawQuad(Mat4 transsform, Ref<Texture2D> texture)
+{
+
+    // Retrieve the command buffer currently being recorded for this frame
+    auto commandBuffer = s_Data->ActiveCommandBuffer;
+    // Parameters: CommandBuffer, IndexCount, InstanceCount, FirstIndex, VertexOffset, FirstInstance
+    s_Data->ActiveCommandBuffer-?(indexCount, 1);
+
 }

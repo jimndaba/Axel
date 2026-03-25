@@ -7,6 +7,8 @@
 #include "VulkanPipeline.h"
 #include "VulkanDescriptorSet.h"
 
+#include "VulkanTexture2D.h"
+
 void Axel::VulkanRendererAPI::Init()
 {
 	// You can set up global Vulkan states here.
@@ -19,6 +21,30 @@ void Axel::VulkanRendererAPI::SetClearColor(const Vec4& color)
 
 void Axel::VulkanRendererAPI::Clear()
 {
+}
+
+void Axel::VulkanRendererAPI::DrawQuad(GraphicsContext* context, const Mat4& transform, const Ref<Texture2D>& texture)
+{
+    auto vContext = static_cast<VulkanContext*>(context);
+    auto vkTex = std::static_pointer_cast<VulkanTexture2D>(texture);
+
+    // 1. Get the currently bound Vulkan Shader from your Renderer State
+    auto vkShader = std::static_pointer_cast<VulkanShader>(m_CurrentShader);
+    VkPipelineLayout layout = vkShader->GetLayout();
+
+    VkCommandBuffer cmd = vContext->GetActiveCommandBuffer();
+
+    // 2. Bind Pipeline (Crucial: You must bind the pipeline before drawing!)
+    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, vkShader->GetPipeline());
+
+    // 3. Bind Descriptor Set using the Shader's Layout
+    VkDescriptorSet set = vkTex->GetDescriptorSet();
+    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, 0, 1, &set, 0, nullptr);
+
+    // 4. Push Constants using the Shader's Layout
+    vkCmdPushConstants(cmd, layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Mat4), &transform);
+
+    vkCmdDrawIndexed(cmd, 6, 1, 0, 0, 0);
 }
 
 void Axel::VulkanRendererAPI::SubmitCommandBuffer(GraphicsContext* context, Ref<RenderCommandBuffer> commandBuffer)

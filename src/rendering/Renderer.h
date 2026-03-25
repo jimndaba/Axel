@@ -16,6 +16,7 @@ namespace Axel
     class Particle;
     class UIElement;
     class CameraComponent;
+    class Texture2D;
 
 
     struct AX_API RendererData {
@@ -60,17 +61,17 @@ namespace Axel
         static void SubmitParticle(const Particle& particle);
         static void SubmitUI(Ref<UIElement> element);
         static void SubmitInstanced(Ref<Mesh> mesh, Ref<Material> material, const std::vector<glm::mat4>& transforms);
-
         static void BindDescriptorSet(uint32_t setIndex, const Ref<DescriptorSet>& set, const Ref<Pipeline>& pipeline);
 
         static void DrawIndexed(uint32_t indexCount);
+        static void DrawQuad(Mat4 transsform,Ref<Texture2D> texture);
 
         static RendererAPI::API GetAPI() { return RendererAPI::GetAPI(); }
         static Ref<RenderCommandBuffer> GetActiveCommandBuffer() { return s_Data->ActiveCommandBuffer; }
 
-    private:
-        
+    private:        
         static Scope<RendererData> s_Data;
+		static Ref<Texture2D> s_WhiteTexture; // A default white texture for materials that don't have one
 	};
 
 

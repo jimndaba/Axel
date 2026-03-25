@@ -20,10 +20,14 @@ Axel::Entity Axel::Scene::CreateEntityWithUUID(UUID uuid, const std::string& nam
     entt::entity handle = m_Registry.create();
 
     // Every entity in Axel MUST have these
-    m_Registry.emplace<IDComponent>(handle, uuid);
-    m_Registry.emplace<TagComponent>(handle, name.empty() ? "Entity" : name);
-    //m_Registry.emplace<TransformComponent>(handle);
 
+	IDComponent idComp;
+	idComp.ID = uuid;
+    m_Registry.emplace<IDComponent>(handle,idComp);
+
+	TagComponent tagComp;
+	tagComp.Name = name.empty() ? "Entity" : name;
+    m_Registry.emplace<TagComponent>(handle, tagComp);
     m_EntityMap[uuid] = handle;
 
     return { handle, this };

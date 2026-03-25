@@ -9,7 +9,7 @@
 
 namespace Axel
 {
-
+	class Texture2D;
     class VulkanRendererAPI : public RendererAPI {
     public:
         virtual void Init() override;
@@ -17,7 +17,7 @@ namespace Axel
         virtual void Clear() override;
 
         //virtual void DrawIndexed(const Ref<VertexArray>& vertexArray, uint32_t indexCount = 0) override;
-
+        virtual void DrawQuad(GraphicsContext* context, const Mat4& transform, const Ref<Texture2D>& texture) override;
         virtual void SubmitCommandBuffer(GraphicsContext* context, Ref<RenderCommandBuffer> commandBuffer) override;
 		virtual void BindDescriptorSet(GraphicsContext* context, uint32_t setIndex, const Ref<DescriptorSet>& set, const Ref<Pipeline>& pipeline) override;
 
