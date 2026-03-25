@@ -33,8 +33,13 @@ VkCommandBuffer Axel::VulkanCommandPool::AllocateBuffer(bool begin)
     allocInfo.commandBufferCount = 1;
 
     VkCommandBuffer commandBuffer{};
-    AXEL_CORE_ASSERT(vkAllocateCommandBuffers(m_Device.GetLogicalDevice(), &allocInfo, &commandBuffer) == VK_SUCCESS,
-        "Failed to allocate Command Buffer!");
+    VkResult result = vkAllocateCommandBuffers(m_Device.GetLogicalDevice(), &allocInfo, &commandBuffer);
+    
+    if (result != VK_SUCCESS)
+    {
+        AXLOG_ERROR("Failed to allocate Command Buffer!");  
+    }
+    
 
     if (begin) {
         VkCommandBufferBeginInfo beginInfo{};

@@ -18,7 +18,7 @@ namespace Axel
     class CameraComponent;
 
 
-    struct RendererData {
+    struct AX_API RendererData {
         // The View/Projection data for the current frame
         Mat4 ViewProjection;
         Vec3 CameraPosition;
@@ -37,7 +37,7 @@ namespace Axel
         Ref<RenderCommandBuffer> ActiveCommandBuffer;
     };
 
-	class Renderer
+	class AX_API Renderer
 	{
     public:
         // Lifecycle
@@ -46,6 +46,10 @@ namespace Axel
 
         static void BeginFrame();
         static void EndFrame();
+
+        void BeginRenderPass(Ref<RenderPass> renderPass, bool clear);
+        void EndRenderPass(Ref<RenderPass> renderPass);
+
         // Scene Scope
         static void BeginScene(const CameraComponent& camera, const Mat4& transform);
         static void EndScene();
@@ -56,6 +60,10 @@ namespace Axel
         static void SubmitParticle(const Particle& particle);
         static void SubmitUI(Ref<UIElement> element);
         static void SubmitInstanced(Ref<Mesh> mesh, Ref<Material> material, const std::vector<glm::mat4>& transforms);
+
+        static void BindDescriptorSet(uint32_t setIndex, const Ref<DescriptorSet>& set, const Ref<Pipeline>& pipeline);
+
+        static void DrawIndexed(uint32_t indexCount);
 
         static RendererAPI::API GetAPI() { return RendererAPI::GetAPI(); }
         static Ref<RenderCommandBuffer> GetActiveCommandBuffer() { return s_Data->ActiveCommandBuffer; }

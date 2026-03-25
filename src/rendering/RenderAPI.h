@@ -9,8 +9,10 @@ namespace Axel
 {
     class RenderCommandBuffer;
     class GraphicsContext;
+    class Pipeline;
+	class DescriptorSet;
 
-    class RendererAPI {
+    class AX_API RendererAPI {
     public:
         enum class API {
             None = 0, Vulkan = 1, DX12 = 2
@@ -26,7 +28,7 @@ namespace Axel
         virtual void SetClearColor(const Vec4& color) = 0;
         virtual void Clear() = 0;
         virtual void SubmitCommandBuffer(GraphicsContext* context, Ref<RenderCommandBuffer> commandBuffer) = 0;
-
+        virtual void BindDescriptorSet(GraphicsContext* context, uint32_t setIndex, const Ref<DescriptorSet>& set, const Ref<Pipeline>& pipeline) = 0;
     private:
         static API s_API;
     };

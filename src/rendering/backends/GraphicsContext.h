@@ -7,6 +7,8 @@
 namespace Axel {
 	class Framebuffer;
 	class RenderPass;
+    class RenderCommandBuffer;
+    class GraphicsDevice;
 
     class GraphicsContext {
     public:
@@ -21,6 +23,8 @@ namespace Axel {
 
         virtual Ref<Framebuffer> GetCurrentFramebuffer() = 0;
         virtual Ref<RenderPass> GetMainRenderPass() = 0; // The "Screen" pass
+        virtual Ref<RenderCommandBuffer> GetCurrentCommandBuffer() = 0;
+		virtual GraphicsDevice* GetDevice() = 0;
 
         // Factory method to decide which API to boot
         static Scope<GraphicsContext> Create(void* windowHandle);

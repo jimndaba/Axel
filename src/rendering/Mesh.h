@@ -3,13 +3,12 @@
 #define MESH_H
 
 #include "core/Core.h"
-#include "Buffer.h"
 #include "math/Math.h"
 
 namespace Axel
 {
 	const int MAX_BONE_INFLUENCE = 4;
-	struct Vertex
+	struct AX_API  Vertex
 	{
 		// Static & Common
 		Vec3 Position;
@@ -26,7 +25,7 @@ namespace Axel
 		Vec4 VertexColor;
 	};
 
-	class Mesh
+	class AX_API Mesh
 	{
 	public:
 		Mesh();

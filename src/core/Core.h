@@ -3,6 +3,9 @@
 #define CORE_H
 
 #include <memory>
+#include <string>
+#include <map>
+
 
 
 namespace Axel

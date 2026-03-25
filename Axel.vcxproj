@@ -55,7 +55,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>AX_BUILD_ENGINE;</PreprocessorDefinitions>
+      <PreprocessorDefinitions>AX_BUILD_ENGINE;AX_DEBUG</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <PrecompiledHeaderFile>axelpch.h</PrecompiledHeaderFile>
@@ -94,6 +94,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="src\assets\AssetRegister.h" />
     <ClInclude Include="src\axelpch.h" />
     <ClInclude Include="src\core\Application.h" />
     <ClInclude Include="src\core\AxelApp.h" />
@@ -102,6 +103,7 @@
     <ClInclude Include="src\core\InputState.h" />
     <ClInclude Include="src\core\Logger.h" />
     <ClInclude Include="src\core\Timer.h" />
+    <ClInclude Include="src\core\Utils.h" />
     <ClInclude Include="src\core\UUID.h" />
     <ClInclude Include="src\events\EventBus.h" />
     <ClInclude Include="src\math\Math.h" />
@@ -109,18 +111,28 @@
     <ClInclude Include="src\rendering\backends\FrameBuffer.h" />
     <ClInclude Include="src\rendering\backends\GraphicsContext.h" />
     <ClInclude Include="src\rendering\backends\GraphicsDevice.h" />
+    <ClInclude Include="src\rendering\backends\vulkanbackend\VkIndexBuffer.h" />
+    <ClInclude Include="src\rendering\backends\vulkanbackend\VkVertexBuffer.h" />
+    <ClInclude Include="src\rendering\backends\vulkanbackend\VulkanBuffer.h" />
     <ClInclude Include="src\rendering\backends\vulkanbackend\VulkanCommandBuffer.h" />
     <ClInclude Include="src\rendering\backends\vulkanbackend\VulkanCommanPool.h" />
     <ClInclude Include="src\rendering\backends\vulkanbackend\VulkanContext.h" />
+    <ClInclude Include="src\rendering\backends\vulkanbackend\VulkanDescriptorSet.h" />
     <ClInclude Include="src\rendering\backends\vulkanbackend\VulkanDevice.h" />
     <ClInclude Include="src\rendering\backends\vulkanbackend\VulkanFramebuffer.h" />
     <ClInclude Include="src\rendering\backends\vulkanbackend\VulkanRenderAPI.h" />
     <ClInclude Include="src\rendering\backends\vulkanbackend\VulkanRenderPass.h" />
+    <ClInclude Include="src\rendering\backends\vulkanbackend\VulkanShader.h" />
     <ClInclude Include="src\rendering\backends\vulkanbackend\VulkanSwapchain.h" />
-    <ClInclude Include="src\rendering\Buffer.h" />
+    <ClInclude Include="src\rendering\backends\vulkanbackend\VulkanPipeline.h" />
+    <ClInclude Include="src\rendering\backends\vulkanbackend\VulkanUniformBuffer.h" />
+    <ClInclude Include="src\rendering\Buffers.h" />
     <ClInclude Include="src\rendering\BufferLayout.h" />
+    <ClInclude Include="src\rendering\DescriptorSet.h" />
+    <ClInclude Include="src\rendering\GraphicsCore.h" />
     <ClInclude Include="src\rendering\Material.h" />
     <ClInclude Include="src\rendering\Mesh.h" />
+    <ClInclude Include="src\rendering\Pipeline.h" />
     <ClInclude Include="src\rendering\RenderAPI.h" />
     <ClInclude Include="src\rendering\RenderCommandBuffer.h" />
     <ClInclude Include="src\rendering\Renderer.h" />
@@ -146,25 +158,40 @@
     <ClCompile Include="src\core\UUID.cpp" />
     <ClCompile Include="src\entry_point.cpp" />
     <ClCompile Include="src\events\EventBus.cpp" />
+    <ClCompile Include="src\math\Math.cpp" />
     <ClCompile Include="src\platform\WinPlatform.cpp" />
     <ClCompile Include="src\rendering\backends\FrameBuffer.cpp" />
     <ClCompile Include="src\rendering\backends\GraphicsContext.cpp" />
     <ClCompile Include="src\rendering\backends\GraphicsDevice.cpp" />
+    <ClCompile Include="src\rendering\backends\vulkanbackend\VkIndexBuffer.cpp" />
+    <ClCompile Include="src\rendering\backends\vulkanbackend\VkVertexBuffer.cpp" />
+    <ClCompile Include="src\rendering\backends\vulkanbackend\VulkanBuffer.cpp" />
     <ClCompile Include="src\rendering\backends\vulkanbackend\VulkanCommandBuffer.cpp" />
     <ClCompile Include="src\rendering\backends\vulkanbackend\VulkanCommanPool.cpp" />
     <ClCompile Include="src\rendering\backends\vulkanbackend\VulkanContext.cpp" />
+    <ClCompile Include="src\rendering\backends\vulkanbackend\VulkanDescriptorSet.cpp" />
     <ClCompile Include="src\rendering\backends\vulkanbackend\VulkanDevice.cpp" />
     <ClCompile Include="src\rendering\backends\vulkanbackend\VulkanFramebuffer.cpp" />
     <ClCompile Include="src\rendering\backends\vulkanbackend\VulkanRenderAPI.cpp" />
     <ClCompile Include="src\rendering\backends\vulkanbackend\VulkanRenderPass.cpp" />
+    <ClCompile Include="src\rendering\backends\vulkanbackend\VulkanShader.cpp" />
     <ClCompile Include="src\rendering\backends\vulkanbackend\VulkanSwapchain.cpp" />
+    <ClCompile Include="src\rendering\backends\vulkanbackend\VulkanPipeline.cpp" />
+    <ClCompile Include="src\rendering\backends\vulkanbackend\VulkanUniformBuffer.cpp" />
+    <ClCompile Include="src\rendering\Buffers.cpp" />
+    <ClCompile Include="src\rendering\DescriptorSet.cpp" />
     <ClCompile Include="src\rendering\Mesh.cpp" />
+    <ClCompile Include="src\rendering\Pipeline.cpp" />
     <ClCompile Include="src\rendering\RenderAPI.cpp" />
     <ClCompile Include="src\rendering\RenderCommandBuffer.cpp" />
     <ClCompile Include="src\rendering\Renderer.cpp" />
     <ClCompile Include="src\rendering\rendergraph\Rendergraph.cpp" />
     <ClCompile Include="src\rendering\backends\RenderPass.cpp" />
+    <ClCompile Include="src\rendering\Shader.cpp" />
     <ClCompile Include="src\scene\Scene.cpp" />
+    <ClCompile Include="vendors\spirv_refl\spirv_reflect.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

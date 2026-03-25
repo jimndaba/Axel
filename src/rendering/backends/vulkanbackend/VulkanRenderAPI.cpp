@@ -4,6 +4,8 @@
 #include "VulkanCommandBuffer.h"
 #include "../GraphicsContext.h"
 #include "VulkanContext.h"
+#include "VulkanPipeline.h"
+#include "VulkanDescriptorSet.h"
 
 void Axel::VulkanRendererAPI::Init()
 {
@@ -22,7 +24,7 @@ void Axel::VulkanRendererAPI::Clear()
 void Axel::VulkanRendererAPI::SubmitCommandBuffer(GraphicsContext* context, Ref<RenderCommandBuffer> commandBuffer)
 {
     auto vContext = static_cast<VulkanContext*>(context);
-    auto device = vContext->GetDevice();
+    auto device = (VulkanDevice*)(context->GetDevice());
     auto vCmdBuffer = std::static_pointer_cast<VulkanCommandBuffer>(commandBuffer);
 
     VkSubmitInfo submitInfo{};
@@ -45,7 +47,28 @@ void Axel::VulkanRendererAPI::SubmitCommandBuffer(GraphicsContext* context, Ref<
     submitInfo.pSignalSemaphores = signalSemaphores;
 
     // Submit to the Graphics Queue!
-    if (vkQueueSubmit(device->GetGraphicsQueue(), 1, &submitInfo, vContext->GetInFlightFence()) != VK_SUCCESS) {
+  
+	VkResult result = vkQueueSubmit(device->GetGraphicsQueue(), 1, &submitInfo, vContext->GetInFlightFence());
+
+    if (result != VK_SUCCESS) {
         AXLOG_ERROR("Failed to submit Vulkan command buffer!");
     }
+}
+
+void Axel::VulkanRendererAPI::BindDescriptorSet(GraphicsContext* context, uint32_t setIndex, const Ref<DescriptorSet>& set, const Ref<Pipeline>& pipeline)
+{
+	auto cmdbuffer = static_cast<VulkanContext*>(context)->GetActiveCommandBuffer();
+    auto vkSet = std::static_pointer_cast<VulkanDescriptorSet>(set)->GetHandle();
+    auto vkPipeline = std::static_pointer_cast<VulkanPipeline>(pipeline);
+
+    vkCmdBindDescriptorSets(
+        cmdbuffer, // The internal VkCommandBuffer
+        VK_PIPELINE_BIND_POINT_GRAPHICS,
+        vkPipeline->GetLayout(), // Using the reflected layout!
+        setIndex,
+        1,
+        &vkSet,
+        0, nullptr
+    );
+
 }

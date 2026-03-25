@@ -51,6 +51,7 @@ namespace Axel
         static Application* s_Instance;
         void* m_GameLib = nullptr;
         IGame* m_ActiveGame = nullptr;
+		GameContext* m_GameContext = nullptr;
     };
 }
 

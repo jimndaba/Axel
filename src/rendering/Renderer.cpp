@@ -25,32 +25,28 @@ void Axel::Renderer::BeginFrame()
 {
     // 1. Tell the Context (Vulkan) to wait for fences and acquire the next image
     s_Data->Context->BeginFrame();
-
-    // 2. Create/Get a command buffer for this frame
-    // In a real engine, you'd pull this from a pre-allocated pool
-    s_Data->ActiveCommandBuffer = RenderCommandBuffer::Create(s_Data->Context);
-    s_Data->ActiveCommandBuffer->Begin();
+    s_Data->ActiveCommandBuffer = s_Data->Context->GetCurrentCommandBuffer();
 }
 
 void Axel::Renderer::EndFrame()
 {
-    AXEL_CORE_ASSERT(s_Data->ActiveCommandBuffer, "No active command buffer!");
-    auto fb = s_Data->Context->GetTargetFramebuffer();
-    auto rp = s_Data->Context->GetMainRenderPass();
-    s_Data->ActiveCommandBuffer->BeginRenderPass(rp, fb);
-
-        
-
-    // 1. Finalize recording
-    s_Data->ActiveCommandBuffer->End();
-
-    // 2. Submit the recorded work to the GPU
-    s_Data->API->SubmitCommandBuffer(s_Data->Context, s_Data->ActiveCommandBuffer);
-
-    // 3. Present the image to the screen and swap semaphores
+    s_Data->Context->EndFrame();
     s_Data->Context->SwapBuffers();
+}
 
-    s_Data->ActiveCommandBuffer = nullptr;
+void Axel::Renderer::BeginRenderPass(Ref<RenderPass> renderPass, bool clear)
+{
+    // 1. Get the current target from the context
+    auto targetFramebuffer = s_Data->Context->GetCurrentFramebuffer();
+    // 2. Tell the active command buffer to record the "Begin" command
+    // The Command Buffer implementation will handle the Vulkan specifics    
+    s_Data->ActiveCommandBuffer->BeginRenderPass(renderPass, targetFramebuffer);
+}
+
+void Axel::Renderer::EndRenderPass(Ref<RenderPass> renderPass)
+{
+    //s_Data->ActiveCommandBuffer = s_Data->Context->GetCurrentCommandBuffer();
+    s_Data->ActiveCommandBuffer->EndRenderPass();
 }
 
 void Axel::Renderer::BeginScene(const CameraComponent& camera, const Mat4& transform)
@@ -98,4 +94,17 @@ void Axel::Renderer::SubmitInstanced(Ref<Mesh> mesh, Ref<Material> material, con
 
     s_Data->MeshPackets.push_back(packet);
     */
+}
+
+void Axel::Renderer::BindDescriptorSet(uint32_t setIndex, const Ref<DescriptorSet>& set, const Ref<Pipeline>& pipeline)
+{
+	s_Data->API->BindDescriptorSet(s_Data->Context, setIndex, set, pipeline);
+}
+
+void Axel::Renderer::DrawIndexed(uint32_t indexCount)
+{
+    // Retrieve the command buffer currently being recorded for this frame
+    auto commandBuffer = s_Data->ActiveCommandBuffer;
+    // Parameters: CommandBuffer, IndexCount, InstanceCount, FirstIndex, VertexOffset, FirstInstance
+    s_Data->ActiveCommandBuffer->DrawIndexed(indexCount, 1);
 }

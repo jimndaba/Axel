@@ -8,7 +8,7 @@
 namespace Axel {
 
     struct Buffer;
-    struct Texture;
+    class Texture;
     struct TextureSpecification;
 
     struct DeviceCapabilities {

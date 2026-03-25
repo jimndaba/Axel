@@ -2,20 +2,17 @@
 #ifndef BUFFERLAYOUT_H
 #define BUFFERLAYOUT_H
 
-#include <string>
-#include <vector>
+#include "GraphicsCore.h"
+#include <core/Core.h>
 
 namespace Axel
 {
-	enum class ShaderDataType {
-		None = 0, Float, Float2, Float3, Float4, Mat3, Mat4, Int, Int2, Int3, Int4, Bool
-	};
-    
-    struct BufferElement {
-        std::string Name;
-        ShaderDataType Type;
-        uint32_t Size;
-        uint32_t Offset;
+
+    struct AX_API BufferElement {
+        std::string Name = "";
+        ShaderDataType Type = ShaderDataType::None;
+        uint32_t Size = 0;
+        uint32_t Offset = 0;
 
         BufferElement(ShaderDataType type, const std::string& name)
             : Name(name), Type(type), Size(ShaderDataTypeSize(type)), Offset(0) {}
@@ -42,8 +39,11 @@ namespace Axel
         }
     };
 
-    class BufferLayout {
+    class AX_API BufferLayout {
     public:
+        // Add this line!
+        BufferLayout() = default;
+
         BufferLayout(const std::initializer_list<BufferElement>& elements)
             : m_Elements(elements) {
             CalculateOffsetsAndStride();
@@ -51,6 +51,9 @@ namespace Axel
 
         uint32_t GetStride() const { return m_Stride; }
         const std::vector<BufferElement>& GetElements() const { return m_Elements; }
+
+        std::vector<BufferElement>::iterator begin() { return m_Elements.begin(); }
+        std::vector<BufferElement>::iterator end() { return m_Elements.end(); }
 
     private:
         void CalculateOffsetsAndStride() {

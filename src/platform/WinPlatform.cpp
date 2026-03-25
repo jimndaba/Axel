@@ -40,7 +40,7 @@ namespace Axel
 			glfwTerminate();
 			return false;
 		}
-
+		glfwSetFramebufferSizeCallback((GLFWwindow*)mNativeWindowHandle, FramebufferSizeCallback);
 		/* Make the window's context current */
 		glfwMakeContextCurrent((GLFWwindow*)mNativeWindowHandle);
 		return 1;

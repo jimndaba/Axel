@@ -11,6 +11,11 @@ const std::vector<const char*> deviceExtensions = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
 
+
+const std::vector<const char*> validationLayers = {
+    "VK_LAYER_KHRONOS_validation"
+};
+
 Axel::VulkanDevice::VulkanDevice(VulkanContext* context)
 {
     m_Context = context;
@@ -60,6 +65,31 @@ void Axel::VulkanDevice::pickPhysicalDevice(VkInstance instance, VkSurfaceKHR su
     }
 
     AXEL_CORE_ASSERT(m_PhysicalDevice, "Failed to find a suitable GPU!");
+}
+
+uint32_t Axel::VulkanDevice::FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
+    // 1. Query the physical device for all available memory properties
+    VkPhysicalDeviceMemoryProperties memProperties;
+    vkGetPhysicalDeviceMemoryProperties(m_PhysicalDevice, &memProperties);
+
+    // 2. Loop through all available memory types (usually 10-32 types)
+    for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
+
+        // Check 'typeFilter': Is this specific memory type bit set in the filter?
+        // (typeFilter comes from vkGetBufferMemoryRequirements)
+        bool isSuitableType = (typeFilter & (1 << i));
+
+        // Check 'properties': Does this memory type support ALL the flags we requested?
+        // (e.g., VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
+        bool hasRequiredProperties = (memProperties.memoryTypes[i].propertyFlags & properties) == properties;
+
+        if (isSuitableType && hasRequiredProperties) {
+            return i;
+        }
+    }
+
+    AXEL_CORE_ASSERT(false, "Failed to find suitable memory type for Vulkan buffer!");
+    return 0;
 }
 
 int Axel::VulkanDevice::rateDeviceSuitability(VkPhysicalDevice device) {
@@ -178,8 +208,83 @@ Axel::QueueFamilyIndices Axel::VulkanDevice::FindQueueFamilies(VkPhysicalDevice 
         return indices;
 }
 
+bool Axel::VulkanDevice::checkValidationLayerSupport()
+{
+    uint32_t layerCount;
+    vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
+
+    std::vector<VkLayerProperties> availableLayers(layerCount);
+    vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
+
+    for (const char* layerName : validationLayers) {
+        bool layerFound = false;
+
+        for (const auto& layerProperties : availableLayers) {
+            if (strcmp(layerName, layerProperties.layerName) == 0) {
+                layerFound = true;
+                break;
+            }
+        }
+
+        if (!layerFound) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+void Axel::VulkanDevice::CopyBuffer(const VulkanContext& context, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
+    // 1. Open a temporary "One-Time" command buffer
+    VkCommandBuffer commandBuffer = BeginSingleTimeCommands(context);
+
+    // 2. Define the copy region (from offset 0 to 'size')
+    VkBufferCopy copyRegion{};
+    copyRegion.srcOffset = 0; // Optional: start at beginning of source
+    copyRegion.dstOffset = 0; // Optional: start at beginning of destination
+    copyRegion.size = size;
+
+    // 3. Record the transfer command
+    vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
+
+    // 4. Close, Submit to Graphics Queue, and Wait for the GPU to finish
+    EndSingleTimeCommands(context,commandBuffer);
+}
+
+VkCommandBuffer Axel::VulkanDevice::BeginSingleTimeCommands(const VulkanContext& context) {
+    VkCommandBufferAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    allocInfo.commandPool = context.GetCommandPool()->GetHandle(); // Use a transient pool if possible
+    allocInfo.commandBufferCount = 1;
+
+    VkCommandBuffer commandBuffer;
+    vkAllocateCommandBuffers(m_LogicalDevice, &allocInfo, &commandBuffer);
+
+    VkCommandBufferBeginInfo beginInfo{};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+    vkBeginCommandBuffer(commandBuffer, &beginInfo);
+    return commandBuffer;
+}
+
+void Axel::VulkanDevice::EndSingleTimeCommands(const VulkanContext& context,VkCommandBuffer commandBuffer) {
+    vkEndCommandBuffer(commandBuffer);
+
+    VkSubmitInfo submitInfo{};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &commandBuffer;
+
+    vkQueueSubmit(m_GraphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+    vkQueueWaitIdle(m_GraphicsQueue); // Wait for the copy to finish
+    vkFreeCommandBuffers(m_LogicalDevice, context.GetCommandPool()->GetHandle(), 1, &commandBuffer);
+}
+
 void Axel::VulkanDevice::WaitIdle()
 {
+	vkDeviceWaitIdle(m_LogicalDevice);
 }
 
 const Axel::DeviceCapabilities& Axel::VulkanDevice::GetCaps() const

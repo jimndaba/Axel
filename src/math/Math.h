@@ -21,6 +21,15 @@ namespace Axel
     using Vec4 = glm::vec4;
     using Mat4 = glm::mat4;
     using Quat = glm::quat;
+
+    namespace MATRIX
+    {
+        inline Axel::Mat4 ORTHO(float left, float right, float bottom, float top, float nr, float fr)
+        {
+            return glm::ortho(left, right, bottom, top, nr, fr);
+        }
+
+    }
 }
 
 

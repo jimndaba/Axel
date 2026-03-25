@@ -12,7 +12,7 @@ std::shared_ptr<Axel::RenderCommandBuffer > Axel::RenderCommandBuffer::Create(Gr
     case RendererAPI::API::Vulkan:
     {
         auto context = static_cast<VulkanContext*>(ctxt);
-        auto device = context->GetDevice();
+        auto device =static_cast<VulkanDevice*>(context->GetDevice());
         auto pool = context->GetCommandPool()->GetHandle();
 
         return CreateRef<VulkanCommandBuffer>(*device, pool);

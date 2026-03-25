@@ -27,7 +27,7 @@ namespace Axel
         RenderPass(){}
         virtual ~RenderPass() = default;
         virtual const RenderPassSpecification& GetSpecification() const = 0;
-
+		virtual void Destroy() = 0;
         static Ref<RenderPass> Create(const RenderPassSpecification& spec,GraphicsDevice* device);  
     };
 

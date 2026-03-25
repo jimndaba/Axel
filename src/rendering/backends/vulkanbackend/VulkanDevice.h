@@ -22,15 +22,21 @@ namespace Axel
         VulkanDevice(VulkanContext* context);
         
         void Init();
-        void WaitIdle();
-        const DeviceCapabilities& GetCaps() const;
+        void WaitIdle();   
+        void CopyBuffer(const VulkanContext& context,VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
+        void EndSingleTimeCommands(const VulkanContext& context,VkCommandBuffer commandBuffer);
+        VkCommandBuffer BeginSingleTimeCommands(const VulkanContext& context);
+
+        
 
         VkDevice GetLogicalDevice() const { return m_LogicalDevice; }
         VkPhysicalDevice GetPhysicalDevice() const { return m_PhysicalDevice; }
         VkQueue GetGraphicsQueue() const { return m_GraphicsQueue; }
         VkQueue GetPresentQueue() const { return m_PresentQueue; }
         QueueFamilyIndices GetQueueFamilyIndices() const { return m_Queues; }
-       
+        uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
+        const DeviceCapabilities& GetCaps() const;
+        bool checkValidationLayerSupport();
 
         // Resource Creation (Abstracted)
         Ref<Buffer> CreateVertexBuffer(uint32_t size);
@@ -50,9 +56,11 @@ namespace Axel
     private:
         bool isDeviceSuitable(VkPhysicalDevice device);
         void pickPhysicalDevice(VkInstance instance, VkSurfaceKHR surface);
+       
         int rateDeviceSuitability(VkPhysicalDevice device);
         bool checkDeviceExtensionSupport(VkPhysicalDevice device);
         QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface);
+        
         void CreateLogicalDevice(VkSurfaceKHR surface);
   
 

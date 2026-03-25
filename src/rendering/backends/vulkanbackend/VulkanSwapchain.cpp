@@ -46,16 +46,12 @@ void Axel::VulkanSwapchain::AcquireNextImage()
 void Axel::VulkanSwapchain::RecreateSwapchain()
 {
     cleanupSwapChain();
-    void Create();
-    void CreateImageViews();
+    Create();
+    CreateImageViews();
 }
 
 void Axel::VulkanSwapchain::cleanupSwapChain()
 {
-    //for (auto framebuffer : swapChainFramebuffers) {
-    //    vkDestroyFramebuffer(device, framebuffer, nullptr);
-   // }
-
     for (auto imageView : m_ImageViews) {
         vkDestroyImageView(m_Device.GetLogicalDevice(), imageView, nullptr);
     }

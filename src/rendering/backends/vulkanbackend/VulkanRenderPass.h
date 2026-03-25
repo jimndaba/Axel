@@ -14,7 +14,7 @@ namespace Axel {
         virtual ~VulkanRenderPass() override;
 
         virtual const RenderPassSpecification& GetSpecification() const override { return m_Specification; }
-
+        virtual void Destroy();
         // Vulkan-specific access
         VkRenderPass GetHandle() const { return m_RenderPass; }
 

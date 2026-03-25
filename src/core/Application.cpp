@@ -17,9 +17,9 @@ Axel::Application::Application()
 	m_Platform->Init({"Axel Engine:...",1280, 720,false});
 	AXLOG_INFO("Platform Layer: %s Detected" , m_Platform->GetPlatformName());
 
-	LoadGameDLL("AxelSandbox.dll");
-
 	Init();
+
+	LoadGameDLL("AxelSandbox.dll");
 }
 
 Axel::Application::~Application()
@@ -42,13 +42,17 @@ void Axel::Application::Run()
 
 
 		OnUpdate(dt);	
+
+		InputState inputState;
+		if(m_ActiveGame)
+			m_ActiveGame->OnUpdate(dt,inputState);
 		//Render System can Kick off Here
 
-		mRenderer->BeginFrame();
-
+		//mRenderer->BeginFrame();
+		//mRenderer->BeginRenderPass(mContext->GetMainRenderPass(), true);
 		
-
-		mRenderer->EndFrame();	
+		//mRenderer->EndRenderPass(mContext->GetMainRenderPass());
+		//mRenderer->EndFrame();	
 	}
 
 	OnShutdown();
@@ -62,7 +66,12 @@ void Axel::Application::Quit()
 }
 
 void Axel::Application::Shutdown()
-{
+{	
+	if (m_ActiveGame)
+	{
+		m_ActiveGame->OnUnload();
+		delete(m_GameContext);
+	}
 	Renderer::Shutdown();
 	mContext->Shutdown();
 }
@@ -76,12 +85,13 @@ void Axel::Application::LoadGameDLL(const std::string& path)
 		auto CreateGame = (CreateGameFn)m_Platform->GetSymbol(m_GameLib, "CreateGame");
 		if (CreateGame) {
 			m_ActiveGame = CreateGame();
-
-
-			GameContext ctx;
-			ctx.Bus = m_EventBus.get();
-			ctx.Log = m_Logger.get();
-			m_ActiveGame->OnLoad(ctx);
+			m_GameContext = new GameContext();
+			m_GameContext->Bus = m_EventBus.get();
+			m_GameContext->Log = m_Logger.get();
+			m_GameContext->Device = mContext->GetDevice();
+			m_GameContext->Graphics = mContext.get();
+			m_GameContext->Renderer = mRenderer.get();
+			m_ActiveGame->OnLoad(m_GameContext);
 		}
 	}
 

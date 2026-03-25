@@ -16,6 +16,12 @@ namespace Axel
     class VulkanCommandBuffer :public RenderCommandBuffer{
     public:
         VulkanCommandBuffer(VulkanDevice& device, VkCommandPool pool);
+
+        // New "Handle" constructor for wrapping existing buffers
+        VulkanCommandBuffer(VulkanDevice& device, VkCommandBuffer existingHandle)
+            : m_Device(device), m_ActiveBuffer(existingHandle) {
+        }
+
         ~VulkanCommandBuffer() = default; // Pool owns the memory, usually
 
         virtual void Begin() override;

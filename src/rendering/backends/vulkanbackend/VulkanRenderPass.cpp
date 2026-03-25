@@ -2,6 +2,7 @@
 #include "VulkanRenderPass.h"
 #include "VulkanContext.h"
 #include "VulkanDevice.h"
+#include <core/Logger.h>
 
 Axel::VulkanRenderPass::VulkanRenderPass(const RenderPassSpecification& spec, VulkanDevice& device):m_Specification(spec),mDevice(device)
 {
@@ -53,11 +54,20 @@ Axel::VulkanRenderPass::VulkanRenderPass(const RenderPassSpecification& spec, Vu
 
     // We grab the device from the context (singleton pattern or passed in)
     auto ldevice = device.GetLogicalDevice();
-    AXEL_CORE_ASSERT(vkCreateRenderPass(ldevice, &renderPassInfo, nullptr, &m_RenderPass) == VK_SUCCESS,
-        "Failed to create Vulkan Render Pass!");
+    VkResult result = vkCreateRenderPass(ldevice, &renderPassInfo, nullptr, &m_RenderPass); 
+    if (result != VK_SUCCESS)
+    {
+        AXLOG_ERROR("Failed to create Vulkan Render Pass!");
+    };
+        
 }
 
 Axel::VulkanRenderPass::~VulkanRenderPass()
+{
+   
+}
+
+void Axel::VulkanRenderPass::Destroy()
 {
     auto device = mDevice.GetLogicalDevice();
     vkDestroyRenderPass(device, m_RenderPass, nullptr);

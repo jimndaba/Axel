@@ -12,7 +12,7 @@ namespace Axel
     class Framebuffer;
     class GraphicsContext;
 
-    class RenderCommandBuffer {
+    class AX_API RenderCommandBuffer {
     public:
         virtual ~RenderCommandBuffer() = default;
 
