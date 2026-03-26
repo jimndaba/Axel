@@ -1,22 +1,20 @@
 #include <axelpch.h>
 #include "Pipeline.h"
-
-#include <rendering/RenderAPI.h>
 #include "backends/vulkanbackend/VulkanPipeline.h"
-#include "backends/GraphicsDevice.h"
+#include "backends/GraphicsContext.h"
 #include "backends/vulkanbackend/VulkanDevice.h"
 
-std::shared_ptr<Axel::Pipeline> Axel::Pipeline::Create(const PipelineSpecification& spec, GraphicsDevice* gd)
+std::shared_ptr<Axel::Pipeline> Axel::Pipeline::Create(GraphicsContext* ctxt, const PipelineSpecification& spec)
 {
-    switch (RendererAPI::GetAPI())
+    switch (ctxt->GetCurrentAPI())
     {
-    case RendererAPI::API::None:
+    case RenderAPI::API::None:
         AXEL_CORE_ASSERT(false, "RendererAPI::None is not supported!");
         return nullptr;
 
-    case RendererAPI::API::Vulkan:
+    case RenderAPI::API::Vulkan:
         // We create the concrete Vulkan implementation
-		auto device = dynamic_cast<VulkanDevice*>(gd);
+		auto device = std::dynamic_pointer_cast<VulkanDevice>(ctxt->GetDevice());
         return CreateRef<VulkanPipeline>(spec,*device);
     }
 

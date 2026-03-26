@@ -3,12 +3,19 @@
 #include "../RenderAPI.h"
 #include "vulkanbackend/VulkanRenderPass.h"
 #include "vulkanbackend/VulkanDevice.h"
+#include "GraphicsContext.h"
 
-std::shared_ptr<Axel::RenderPass > Axel::RenderPass::Create(const RenderPassSpecification& spec, GraphicsDevice* device)
+std::shared_ptr<Axel::RenderPass > Axel::RenderPass::Create(GraphicsContext* ctxt, const RenderPassSpecification& spec)
 {
-    switch (RendererAPI::GetAPI()) {
-    case RendererAPI::API::None:    return nullptr;
-    case RendererAPI::API::Vulkan:  return CreateRef<VulkanRenderPass>(spec, *static_cast<VulkanDevice*>(device));
+    switch (ctxt->GetCurrentAPI()) 
+    {
+        case RenderAPI::API::None:    return nullptr;
+
+        case RenderAPI::API::Vulkan:
+        {
+		    auto vdevice = std::dynamic_pointer_cast<VulkanDevice>(ctxt->GetDevice()).get();
+            return CreateRef<VulkanRenderPass>(spec, *vdevice);
+        }
     }
     return nullptr;
 }

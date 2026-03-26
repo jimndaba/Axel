@@ -99,7 +99,7 @@ void Axel::VulkanCommandBuffer::SubmitCommandBuffer(GraphicsContext* context, Re
     submitInfo.pSignalSemaphores = signalSems;
 
     // Submit and signal the InFlightFence
-	auto device = (VulkanDevice*)(context->GetDevice());
+	auto device = (VulkanDevice*)(context->GetDevice().get());
     vkQueueSubmit(device->GetGraphicsQueue(), 1, &submitInfo, vContext->GetInFlightFence());
 }
 

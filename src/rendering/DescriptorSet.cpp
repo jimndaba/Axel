@@ -7,13 +7,13 @@
 
 std::shared_ptr<Axel::DescriptorSet> Axel::DescriptorSet::Create(GraphicsContext* ctxt, const Ref<Pipeline>& pipeline, uint32_t setIndex)
 {
-    switch (RendererAPI::GetAPI())
+    switch (ctxt->GetCurrentAPI())
     {
-    case RendererAPI::API::None:
+    case RenderAPI::API::None:
         AXEL_CORE_ASSERT(false, "RendererAPI::None is not supported!");
         return nullptr;
 
-    case RendererAPI::API::Vulkan:
+    case RenderAPI::API::Vulkan:
         // We pass the active VulkanDevice to the constructor     
 		auto vContext = static_cast<VulkanContext*>(ctxt);
 		auto vPipeline = std::static_pointer_cast<VulkanPipeline>(pipeline);

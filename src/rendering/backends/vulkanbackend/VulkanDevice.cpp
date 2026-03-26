@@ -5,8 +5,11 @@
 #include <stdexcept>
 #include <set>
 #include "../../../core/Logger.h"
+#include <rendering/Texture.h>
 #include "VulkanTexture2D.h"
 #include "VulkanBuffer.h"
+#include "VkVertexBuffer.h"
+#include "VkIndexBuffer.h"
 
 
 const std::vector<const char*> deviceExtensions = {
@@ -19,9 +22,8 @@ const std::vector<const char*> validationLayers = {
 };
 
 Axel::VulkanDevice::VulkanDevice(VulkanContext* context)
+	:m_Context(context)
 {
-    m_Context = context;
-    s_Instance = this;
     Init();
 }
 
@@ -122,16 +124,55 @@ int Axel::VulkanDevice::rateDeviceSuitability(VkPhysicalDevice device) {
 
 void Axel::VulkanDevice::Init()
 {
+    VkInstance instance = m_Context->GetInstance();
+    VkSurfaceKHR surface = m_Context->GetSurface();
+
     // 1. Pick Physical Device (GPU)
+    pickPhysicalDevice(instance, surface);
+    CreateLogicalDevice(surface);
+
     uint32_t deviceCount = 0;
-    vkEnumeratePhysicalDevices(m_Context->GetInstance(), &deviceCount, nullptr);
+    vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
     m_Devices.resize(deviceCount);
-    vkEnumeratePhysicalDevices(m_Context->GetInstance(), &deviceCount, m_Devices.data());
+    vkEnumeratePhysicalDevices(instance, &deviceCount, m_Devices.data());
 
-    // Logic to pick a discrete GPU with Graphics Queues
-    pickPhysicalDevice(m_Context->GetInstance(), m_Context->GetSurface());
+    
+}
 
-    CreateLogicalDevice(m_Context->GetSurface());
+void Axel::VulkanDevice::Shutdown()
+{
+    if (!m_LogicalDevice) {
+        return;
+    }
+    WaitIdle();
+
+    // Cleanup staging buffers
+    {
+        std::unique_lock lock(m_StagingBufferLock);
+        for (auto& buffer : m_StagingBuffers) {
+            if (buffer.Handle != VK_NULL_HANDLE) {
+                vkDestroyBuffer(m_LogicalDevice, buffer.Handle, nullptr);
+            }
+            if (buffer.Memory != VK_NULL_HANDLE) {
+                vkFreeMemory(m_LogicalDevice, buffer.Memory, nullptr);
+            }
+        }
+        m_StagingBuffers.clear();
+    }
+
+
+    // Cleanup transfer command pool
+    if (m_TransferCommandPool != VK_NULL_HANDLE) {
+        vkDestroyCommandPool(m_LogicalDevice, m_TransferCommandPool, nullptr);
+        m_TransferCommandPool = VK_NULL_HANDLE;
+    }
+
+    // Cleanup logical device
+    if (m_LogicalDevice != VK_NULL_HANDLE) {
+        vkDestroyDevice(m_LogicalDevice, nullptr);
+        m_LogicalDevice = VK_NULL_HANDLE;
+    }
+    AXLOG_INFO("VulkanDevice shutdown complete");
 }
 
 
@@ -172,7 +213,7 @@ void Axel::VulkanDevice::CreateLogicalDevice(VkSurfaceKHR surface)
     vkGetDeviceQueue(m_LogicalDevice, m_Queues.PresentFamily.value(), 0, &m_PresentQueue);
 }
 
-Axel::QueueFamilyIndices Axel::VulkanDevice::FindQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface)
+Axel::VulkanDevice::QueueFamilyIndices Axel::VulkanDevice::FindQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface)
 {    
     QueueFamilyIndices indices{};
 
@@ -236,9 +277,9 @@ bool Axel::VulkanDevice::checkValidationLayerSupport()
     return true;
 }
 
-void Axel::VulkanDevice::CopyBuffer(const VulkanContext& context, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
+void Axel::VulkanDevice::CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
     // 1. Open a temporary "One-Time" command buffer
-    VkCommandBuffer commandBuffer = BeginSingleTimeCommands(context);
+    VkCommandBuffer commandBuffer = BeginSingleTimeCommands();
 
     // 2. Define the copy region (from offset 0 to 'size')
     VkBufferCopy copyRegion{};
@@ -250,14 +291,14 @@ void Axel::VulkanDevice::CopyBuffer(const VulkanContext& context, VkBuffer srcBu
     vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
 
     // 4. Close, Submit to Graphics Queue, and Wait for the GPU to finish
-    EndSingleTimeCommands(context,commandBuffer);
+    EndSingleTimeCommands(commandBuffer);
 }
 
-VkCommandBuffer Axel::VulkanDevice::BeginSingleTimeCommands(const VulkanContext& context) {
+VkCommandBuffer Axel::VulkanDevice::BeginSingleTimeCommands() {
     VkCommandBufferAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocInfo.commandPool = context.GetCommandPool()->GetHandle(); // Use a transient pool if possible
+    allocInfo.commandPool = m_Context->GetCommandPool()->GetHandle(); // Use a transient pool if possible
     allocInfo.commandBufferCount = 1;
 
     VkCommandBuffer commandBuffer;
@@ -271,7 +312,7 @@ VkCommandBuffer Axel::VulkanDevice::BeginSingleTimeCommands(const VulkanContext&
     return commandBuffer;
 }
 
-void Axel::VulkanDevice::EndSingleTimeCommands(const VulkanContext& context,VkCommandBuffer commandBuffer) {
+void Axel::VulkanDevice::EndSingleTimeCommands(VkCommandBuffer commandBuffer) {
     vkEndCommandBuffer(commandBuffer);
 
     VkSubmitInfo submitInfo{};
@@ -281,12 +322,23 @@ void Axel::VulkanDevice::EndSingleTimeCommands(const VulkanContext& context,VkCo
 
     vkQueueSubmit(m_GraphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
     vkQueueWaitIdle(m_GraphicsQueue); // Wait for the copy to finish
-    vkFreeCommandBuffers(m_LogicalDevice, context.GetCommandPool()->GetHandle(), 1, &commandBuffer);
+    vkFreeCommandBuffers(m_LogicalDevice, m_Context->GetCommandPool()->GetHandle(), 1, &commandBuffer);
+}
+
+Axel::VulkanDevice::StagingBuffer& Axel::VulkanDevice::AcquireStagingBuffer(size_t minimumSize)
+{
+	return m_StagingBuffers.emplace_back(StagingBuffer{});
+}
+
+void Axel::VulkanDevice::ReleaseStagingBuffer(StagingBuffer& buffer)
+{
 }
 
 void Axel::VulkanDevice::WaitIdle()
 {
-	vkDeviceWaitIdle(m_LogicalDevice);
+    if (m_LogicalDevice) {
+        vkDeviceWaitIdle(m_LogicalDevice);
+    }
 }
 
 const Axel::DeviceCapabilities& Axel::VulkanDevice::GetCaps() const
@@ -294,22 +346,46 @@ const Axel::DeviceCapabilities& Axel::VulkanDevice::GetCaps() const
     return DeviceCapabilities();
 }
 
-std::shared_ptr<Axel::Buffer> Axel::VulkanDevice::CreateVertexBuffer(uint32_t size)
+std::shared_ptr<Axel::VertexBuffer> Axel::VulkanDevice::CreateVertexBuffer(float* vertices, uint32_t size)
 {
-    return Ref<Buffer>();
+	return VertexBuffer::Create(vertices, size, m_Context);
 }
 
-std::shared_ptr<Axel::Buffer> Axel::VulkanDevice::CreateIndexBuffer(uint32_t size)
+std::shared_ptr<Axel::IndexBuffer> Axel::VulkanDevice::CreateIndexBuffer(uint32_t* indices, uint32_t count)
 {
-    return Ref<Buffer>();
+	return IndexBuffer::Create(indices,count, m_Context);
 }
 
-std::shared_ptr<Axel::Texture2D> Axel::VulkanDevice::CreateTexture(const TextureSpecification& spec)
+std::shared_ptr<Axel::Texture2D> Axel::VulkanDevice::CreateTexture(uint32_t width, uint32_t height, const unsigned char* data)
 {
-    return Ref<Texture2D>();
+    return CreateRef<VulkanTexture2D>(width, height, data);
 }
 
-void Axel::VulkanDevice::DestroyTexture(const VulkanContext& context, Ref<Texture2D>& texture)
+bool Axel::VulkanDevice::UploadTexture(Ref<Texture2D> texture)
+{
+    return false;
+}
+
+bool Axel::VulkanDevice::UploadMesh(Ref<Mesh> mesh)
+{
+    return false;
+}
+
+bool Axel::VulkanDevice::UploadBuffer(Ref<Buffer> buffer)
+{
+    return false;
+}
+
+void Axel::VulkanDevice::UnloadTexture(UUID textureID)
+{
+}
+
+bool Axel::VulkanDevice::IsTextureResident(UUID textureID) const
+{
+    return false;
+}
+
+void Axel::VulkanDevice::DestroyTexture(Ref<Texture2D>& texture)
 {
     if (!texture) return;
 
@@ -338,9 +414,10 @@ void Axel::VulkanDevice::DestroyTexture(const VulkanContext& context, Ref<Textur
     AXLOG_INFO("VulkanDevice: Texture destroyed successfully.");
 }
 
-void Axel::VulkanDevice::SubmitTextureToGPU(const VulkanContext& context, Ref<Texture2D>& texture)
+void Axel::VulkanDevice::SubmitTextureToGPU(Ref<Texture2D>& texture)
 {
     auto vkTex = std::static_pointer_cast<VulkanTexture2D>(texture);
+    auto deviceMemory = vkTex->GetDeviceMemory();
 
     // Inside VulkanTexture2D creation
     VkMemoryRequirements memRequirements;
@@ -351,12 +428,13 @@ void Axel::VulkanDevice::SubmitTextureToGPU(const VulkanContext& context, Ref<Te
     allocInfo.allocationSize = memRequirements.size;
     allocInfo.memoryTypeIndex = FindMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
+	
     // This is the handle you are missing!
-    if (vkAllocateMemory(m_LogicalDevice, &allocInfo, nullptr, &m_DeviceMemory) != VK_SUCCESS) {
+    if (vkAllocateMemory(m_LogicalDevice, &allocInfo, nullptr, &deviceMemory) != VK_SUCCESS) {
         throw std::runtime_error("failed to allocate image memory!");
     }
 
-    vkBindImageMemory(device, m_Image, m_DeviceMemory, 0);
+    vkBindImageMemory(m_LogicalDevice, vkTex->GetImage(), deviceMemory, 0);
 
     // 1. Calculate size (Assuming RGBA8 = 4 bytes per pixel)
     VkDeviceSize imageSize = vkTex->GetWidth() * vkTex->GetHeight() * 4;
@@ -373,7 +451,7 @@ void Axel::VulkanDevice::SubmitTextureToGPU(const VulkanContext& context, Ref<Te
     vkUnmapMemory(m_LogicalDevice, stagingBuffer.GetMemory());
 
     // 4. Record a one-time command buffer to perform the transfer
-    VkCommandBuffer cmd = BeginSingleTimeCommands(context);
+    VkCommandBuffer cmd = BeginSingleTimeCommands();
 
     // Transition Undefined -> Transfer Dst
     TransitionImageLayout(cmd, vkTex->GetImage(), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
@@ -384,7 +462,7 @@ void Axel::VulkanDevice::SubmitTextureToGPU(const VulkanContext& context, Ref<Te
     // Transition Transfer Dst -> Shader Read Only
     TransitionImageLayout(cmd, vkTex->GetImage(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-    EndSingleTimeCommands(context,cmd);    
+    EndSingleTimeCommands(cmd);    
 }
 
 void Axel::VulkanDevice::TransitionImageLayout(VkCommandBuffer cb, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout)

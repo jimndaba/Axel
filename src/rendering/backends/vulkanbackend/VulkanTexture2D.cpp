@@ -24,6 +24,7 @@ void Axel::VulkanTexture2D::SetData(const void* data, uint32_t size)
 
 void Axel::VulkanTexture2D::Invalidate(void* data)
 {
+    /*
     VkDevice device = VulkanContext::GetDevice()->GetLogicalDevice();
 
     // 2. Create VkImage
@@ -55,4 +56,5 @@ void Axel::VulkanTexture2D::Invalidate(void* data)
 
     vkAllocateMemory(device, &allocInfo, nullptr, &m_DeviceMemory);
     vkBindImageMemory(device, m_Image, m_DeviceMemory, 0);
+    */
 }

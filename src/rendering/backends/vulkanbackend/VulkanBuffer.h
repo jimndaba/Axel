@@ -3,11 +3,12 @@
 #define VULKANBUFFER_H	
 
 #include <vulkan/vulkan.h>
+#include <rendering/Buffers.h>
 
 namespace Axel
 {
 	class VulkanDevice;
-	class VulkanBuffer
+	class VulkanBuffer 
 	{
 	public:
 		VulkanBuffer(VulkanDevice& device, uint32_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties);

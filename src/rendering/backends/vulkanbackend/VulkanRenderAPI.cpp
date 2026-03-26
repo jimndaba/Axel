@@ -2,30 +2,64 @@
 #include "core/Logger.h"
 #include "VulkanRenderAPI.h"
 #include "VulkanCommandBuffer.h"
-#include "../GraphicsContext.h"
+#include <rendering/backends/vulkanbackend/VulkanContext.h>
 #include "VulkanContext.h"
 #include "VulkanPipeline.h"
 #include "VulkanDescriptorSet.h"
 
 #include "VulkanTexture2D.h"
+#include "VulkanShader.h"
 
-void Axel::VulkanRendererAPI::Init()
+Axel::VulkanRenderAPI::VulkanRenderAPI(VulkanContext* context):
+	m_Context(context)
 {
+}
+
+void Axel::VulkanRenderAPI::Init()
+{
+    m_ClearColor.color = { {0.1f, 0.1f, 0.1f, 1.0f} };
 	// You can set up global Vulkan states here.
 }
 
-void Axel::VulkanRendererAPI::SetClearColor(const Vec4& color)
+void Axel::VulkanRenderAPI::Shutdown()
 {
-	m_ClearColor = color;
+    if (m_Context) {
+        m_Context->GetDevice()->WaitIdle();
+    }
+    AXLOG_INFO("VulkanRenderAPI shutdown");
 }
 
-void Axel::VulkanRendererAPI::Clear()
+void Axel::VulkanRenderAPI::SetClearColor(const Vec4& color)
 {
+    m_ClearColor.color = { {color.r, color.g, color.b, color.a} };
 }
 
-void Axel::VulkanRendererAPI::DrawQuad(GraphicsContext* context, const Mat4& transform, const Ref<Texture2D>& texture)
+void Axel::VulkanRenderAPI::Clear()
 {
-    auto vContext = static_cast<VulkanContext*>(context);
+    auto cmd = m_Context->GetActiveCommandBuffer();
+	VkClearAttachment clearAttachment{};
+	clearAttachment.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT; 
+	clearAttachment.clearValue = m_ClearColor;
+	clearAttachment.colorAttachment = 0; // Assuming we're clearing the first color attachment  
+
+    // Clear the current framebuffer's color attachment
+    vkCmdClearAttachments(cmd, 1, &clearAttachment, 0, nullptr);
+}
+
+void Axel::VulkanRenderAPI::DrawIndexed(uint32_t indexCount, uint32_t instanceCount)
+{
+    if (!m_Context) {
+        AXLOG_ERROR("DrawIndexed: context is null");
+        return;
+    }
+
+    VkCommandBuffer cmd = m_Context->GetActiveCommandBuffer();
+    vkCmdDrawIndexed(cmd, indexCount, instanceCount, 0, 0, 0);
+}
+
+void Axel::VulkanRenderAPI::DrawQuad(const Mat4& transform, const Ref<Texture2D>& texture)
+{   
+    /*
     auto vkTex = std::static_pointer_cast<VulkanTexture2D>(texture);
 
     // 1. Get the currently bound Vulkan Shader from your Renderer State
@@ -45,19 +79,19 @@ void Axel::VulkanRendererAPI::DrawQuad(GraphicsContext* context, const Mat4& tra
     vkCmdPushConstants(cmd, layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Mat4), &transform);
 
     vkCmdDrawIndexed(cmd, 6, 1, 0, 0, 0);
+    */
 }
 
-void Axel::VulkanRendererAPI::SubmitCommandBuffer(GraphicsContext* context, Ref<RenderCommandBuffer> commandBuffer)
+void Axel::VulkanRenderAPI::SubmitCommandBuffer(Ref<RenderCommandBuffer> commandBuffer)
 {
-    auto vContext = static_cast<VulkanContext*>(context);
-    auto device = (VulkanDevice*)(context->GetDevice());
+    auto device = (VulkanDevice*)(m_Context->GetDevice().get());
     auto vCmdBuffer = std::static_pointer_cast<VulkanCommandBuffer>(commandBuffer);
 
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
     // Wait for the swapchain image to be ready before writing to it
-    VkSemaphore waitSemaphores[] = { vContext->GetImageAvailableSemaphore() };
+    VkSemaphore waitSemaphores[] = { m_Context->GetImageAvailableSemaphore() };
     VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
     submitInfo.waitSemaphoreCount = 1;
     submitInfo.pWaitSemaphores = waitSemaphores;
@@ -68,22 +102,22 @@ void Axel::VulkanRendererAPI::SubmitCommandBuffer(GraphicsContext* context, Ref<
     submitInfo.pCommandBuffers = &cmd;
 
     // Signal that rendering is finished so the Swapchain can present
-    VkSemaphore signalSemaphores[] = { vContext->GetRenderFinishedSemaphore() };
+    VkSemaphore signalSemaphores[] = { m_Context->GetRenderFinishedSemaphore() };
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = signalSemaphores;
 
     // Submit to the Graphics Queue!
   
-	VkResult result = vkQueueSubmit(device->GetGraphicsQueue(), 1, &submitInfo, vContext->GetInFlightFence());
+	VkResult result = vkQueueSubmit(device->GetGraphicsQueue(), 1, &submitInfo, m_Context->GetInFlightFence());
 
     if (result != VK_SUCCESS) {
         AXLOG_ERROR("Failed to submit Vulkan command buffer!");
     }
 }
 
-void Axel::VulkanRendererAPI::BindDescriptorSet(GraphicsContext* context, uint32_t setIndex, const Ref<DescriptorSet>& set, const Ref<Pipeline>& pipeline)
+void Axel::VulkanRenderAPI::BindDescriptorSet(uint32_t setIndex, const Ref<DescriptorSet>& set, const Ref<Pipeline>& pipeline)
 {
-	auto cmdbuffer = static_cast<VulkanContext*>(context)->GetActiveCommandBuffer();
+	auto cmdbuffer = static_cast<VulkanContext*>(m_Context)->GetActiveCommandBuffer();
     auto vkSet = std::static_pointer_cast<VulkanDescriptorSet>(set)->GetHandle();
     auto vkPipeline = std::static_pointer_cast<VulkanPipeline>(pipeline);
 
@@ -97,4 +131,8 @@ void Axel::VulkanRendererAPI::BindDescriptorSet(GraphicsContext* context, uint32
         0, nullptr
     );
 
+}
+
+void Axel::VulkanRenderAPI::ValidateCommandBuffer(Ref<RenderCommandBuffer> commandBuffer)
+{
 }

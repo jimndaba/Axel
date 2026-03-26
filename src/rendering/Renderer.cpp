@@ -13,18 +13,17 @@ void Axel::Renderer::Init(GraphicsContext* context)
 {
 	s_Data = std::make_unique<RendererData>();
     s_Data->Context = context;
-    RendererAPI::SetAPI(RendererAPI::API::Vulkan);
-    s_Data->API = RendererAPI::Create();
-    s_Data->API->Init();
+    AXLOG_INFO("Context Initialized.");
 
     // Create a 1x1 white buffer
-    uint32_t white = 0xffffffff;
-    s_WhiteTexture = Texture2D::Create(1, 1, (unsigned char*)&white);
-    AXLOG_INFO("Renderer: White Texture Initialized.");
+    //uint32_t white = 0xffffffff;
+    //s_WhiteTexture = Texture2D::Create(1, 1, (unsigned char*)&white);
+    //AXLOG_INFO("Renderer: White Texture Initialized.");
 }
 
 void Axel::Renderer::Shutdown()
 {
+	s_Data->Context->Shutdown();
 	s_Data.reset();
 }
 
@@ -33,6 +32,7 @@ void Axel::Renderer::BeginFrame()
     // 1. Tell the Context (Vulkan) to wait for fences and acquire the next image
     s_Data->Context->BeginFrame();
     s_Data->ActiveCommandBuffer = s_Data->Context->GetCurrentCommandBuffer();
+
 }
 
 void Axel::Renderer::EndFrame()
@@ -48,6 +48,11 @@ void Axel::Renderer::BeginRenderPass(Ref<RenderPass> renderPass, bool clear)
     // 2. Tell the active command buffer to record the "Begin" command
     // The Command Buffer implementation will handle the Vulkan specifics    
     s_Data->ActiveCommandBuffer->BeginRenderPass(renderPass, targetFramebuffer);
+
+
+    auto renderAPI = s_Data->Context->GetRenderAPI();
+    renderAPI->SetClearColor({ 0.1f, 0.1f, 0.1f, 1.0f });
+    renderAPI->Clear();
 }
 
 void Axel::Renderer::EndRenderPass(Ref<RenderPass> renderPass)
@@ -66,7 +71,8 @@ void Axel::Renderer::EndScene()
 
 void Axel::Renderer::Submit(const Ref<RenderCommandBuffer>& commandBuffer)
 {
-    s_Data->API->SubmitCommandBuffer(s_Data->Context, commandBuffer);
+    auto renderAPI = s_Data->Context->GetRenderAPI();
+    renderAPI->SubmitCommandBuffer(commandBuffer);
 }
 
 void Axel::Renderer::Submit(Ref<Mesh> mesh, Ref<Material> material, const Mat4& transform)
@@ -105,23 +111,23 @@ void Axel::Renderer::SubmitInstanced(Ref<Mesh> mesh, Ref<Material> material, con
 
 void Axel::Renderer::BindDescriptorSet(uint32_t setIndex, const Ref<DescriptorSet>& set, const Ref<Pipeline>& pipeline)
 {
-	s_Data->API->BindDescriptorSet(s_Data->Context, setIndex, set, pipeline);
+    auto renderAPI = s_Data->Context->GetRenderAPI();
+    renderAPI->BindDescriptorSet(setIndex, set, pipeline);
 }
 
 void Axel::Renderer::DrawIndexed(uint32_t indexCount)
 {
     // Retrieve the command buffer currently being recorded for this frame
-    auto commandBuffer = s_Data->ActiveCommandBuffer;
-    // Parameters: CommandBuffer, IndexCount, InstanceCount, FirstIndex, VertexOffset, FirstInstance
-    s_Data->ActiveCommandBuffer->DrawIndexed(indexCount, 1);
+    auto renderAPI = s_Data->Context->GetRenderAPI();
+    renderAPI->DrawIndexed(indexCount);
 }
 
 void Axel::Renderer::DrawQuad(Mat4 transsform, Ref<Texture2D> texture)
 {
 
     // Retrieve the command buffer currently being recorded for this frame
-    auto commandBuffer = s_Data->ActiveCommandBuffer;
+    //auto commandBuffer = s_Data->ActiveCommandBuffer;
     // Parameters: CommandBuffer, IndexCount, InstanceCount, FirstIndex, VertexOffset, FirstInstance
-    s_Data->ActiveCommandBuffer-?(indexCount, 1);
+   // s_Data->ActiveCommandBuffer->DrawQuad(indexCount, 1);
 
 }

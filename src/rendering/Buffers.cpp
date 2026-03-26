@@ -11,16 +11,15 @@
 
 std::shared_ptr<Axel::VertexBuffer> Axel::VertexBuffer::Create(float* vertices, uint32_t size, GraphicsContext* ctxt)
 {
-    switch (RendererAPI::GetAPI())
+    switch (ctxt->GetCurrentAPI())
     {
-    case RendererAPI::API::None:
+    case RenderAPI::API::None:
         AXEL_CORE_ASSERT(false, "RendererAPI::None is not supported!");
         return nullptr;
 
-    case RendererAPI::API::Vulkan:
+    case RenderAPI::API::Vulkan:
         // We pass the active VulkanDevice to the constructor
-        auto device = static_cast<VulkanDevice*>(ctxt->GetDevice());
-        return std::make_shared<VkVertexBuffer>(*ctxt,vertices, size,*device);
+        return std::make_shared<VkVertexBuffer>(*ctxt,vertices, size);
     }
 
     AXEL_CORE_ASSERT(false, "Unknown RendererAPI!");
@@ -29,16 +28,15 @@ std::shared_ptr<Axel::VertexBuffer> Axel::VertexBuffer::Create(float* vertices, 
 
 std::shared_ptr<Axel::IndexBuffer> Axel::IndexBuffer::Create(uint32_t* indices, uint32_t count, GraphicsContext* ctxt)
 {
-    switch (RendererAPI::GetAPI())
+    switch (ctxt->GetCurrentAPI())
     {
-    case RendererAPI::API::None:
+    case RenderAPI::API::None:
         AXEL_CORE_ASSERT(false, "RendererAPI::None is not supported!");
         return nullptr;
 
-    case RendererAPI::API::Vulkan:
-        // We pass the active VulkanDevice to the constructor
-		auto device = static_cast<VulkanDevice*>(ctxt->GetDevice());
-        return std::make_shared<VkIndexBuffer>(*ctxt, indices, count, *device);
+    case RenderAPI::API::Vulkan:
+        // We pass the active VulkanDevice to the constructor		
+        return std::make_shared<VkIndexBuffer>(*ctxt, indices, count);
     }
 
     AXEL_CORE_ASSERT(false, "Unknown RendererAPI!");
@@ -47,15 +45,14 @@ std::shared_ptr<Axel::IndexBuffer> Axel::IndexBuffer::Create(uint32_t* indices, 
 
 std::shared_ptr<Axel::UniformBuffer> Axel::UniformBuffer::Create(GraphicsContext* ctxt, uint32_t size, uint32_t binding)
 {
-    switch (RendererAPI::GetAPI())
+    switch (ctxt->GetCurrentAPI())
     {
-    case RendererAPI::API::None:
+    case RenderAPI::API::None:
         AXEL_CORE_ASSERT(false, "RendererAPI::None is not supported!");
         return nullptr;
 
-    case RendererAPI::API::Vulkan:
+    case RenderAPI::API::Vulkan:
         // We pass the active VulkanDevice to the constructor
-        auto device = static_cast<VulkanDevice*>(ctxt->GetDevice());
         return std::make_shared<VulkanUniformBuffer>(ctxt,size,binding);
     }
 

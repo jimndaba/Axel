@@ -5,18 +5,19 @@
 // Backend headers
 #include "rendering/backends/vulkanbackend/VulkanContext.h"
 
+Axel::RenderAPI::API Axel::GraphicsContext::m_APIType = Axel::RenderAPI::API::Vulkan;
 
 std::unique_ptr<Axel::GraphicsContext> Axel::GraphicsContext::Create(void* windowHandle)
 {
-    switch (RendererAPI::GetAPI()) {
-    case RendererAPI::API::None:
+    switch (m_APIType) {
+    case RenderAPI::API::None:
         AXEL_CORE_ASSERT(false, "RendererAPI::None is not supported!");
         return nullptr;
 
-    case RendererAPI::API::Vulkan:
+    case RenderAPI::API::Vulkan:
         return CreateScope<VulkanContext>(windowHandle);
 
-    case RendererAPI::API::DX12:
+    case RenderAPI::API::DX12:
 #ifdef AXEL_PLATFORM_WINDOWS
         return CreateScope<DX12Context>(windowHandle);
 #else

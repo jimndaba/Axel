@@ -10,7 +10,7 @@ namespace Axel
 	class Shader;
 	class RenderPass;
 	class GraphicsContext;
-	class GraphicsDevice;
+
 
 	struct AX_API PipelineSpecification {
 
@@ -29,8 +29,9 @@ namespace Axel
 		virtual void Bind(const GraphicsContext& context) const = 0;
 		virtual void Unbind() const = 0;
 		virtual void Destroy() = 0;
-		static Ref<Pipeline> Create(const PipelineSpecification& spec,GraphicsDevice* gd);
+		static Ref<Pipeline> Create(GraphicsContext* ctxt, const PipelineSpecification& spec);
 	};
+
 }
 
 

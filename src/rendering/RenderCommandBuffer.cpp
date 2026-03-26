@@ -7,14 +7,13 @@
 
 std::shared_ptr<Axel::RenderCommandBuffer > Axel::RenderCommandBuffer::Create(GraphicsContext* ctxt)
 {
-    switch (RendererAPI::GetAPI()) {
-    case RendererAPI::API::None:    return nullptr;
-    case RendererAPI::API::Vulkan:
+    switch (ctxt->GetCurrentAPI()) {
+    case RenderAPI::API::None:    return nullptr;
+    case RenderAPI::API::Vulkan:
     {
         auto context = static_cast<VulkanContext*>(ctxt);
-        auto device =static_cast<VulkanDevice*>(context->GetDevice());
+		auto device = std::dynamic_pointer_cast<VulkanDevice>(context->GetDevice());
         auto pool = context->GetCommandPool()->GetHandle();
-
         return CreateRef<VulkanCommandBuffer>(*device, pool);
     }
     }

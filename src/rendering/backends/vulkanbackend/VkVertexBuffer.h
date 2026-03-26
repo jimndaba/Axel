@@ -14,11 +14,10 @@ namespace Axel
 	class VkVertexBuffer : public VertexBuffer
 	{
 	public:
-		VkVertexBuffer(const GraphicsContext& context,float* vertices, uint32_t size, VulkanDevice& device);
+		VkVertexBuffer(GraphicsContext& context,float* vertices, uint32_t size);
 		virtual void Bind(GraphicsContext& context) const;
-		virtual void Destroy();
+		virtual void Destroy(GraphicsContext* context);
 	private:
-		VulkanDevice& m_Device;
 		VulkanBuffer* m_Buffer;
 	};
 

@@ -7,32 +7,44 @@
 
 namespace Axel
 {
-    class RenderCommandBuffer;
     class GraphicsContext;
+    class RenderCommandBuffer;
+    class DescriptorSet;
     class Pipeline;
-	class DescriptorSet;
+    class Texture2D;
 
-    class AX_API RendererAPI {
+    class AX_API RenderAPI {
     public:
+
+        virtual ~RenderAPI() = default;
+
+
+        virtual const char* GetAPIName() const = 0;
+        virtual std::string GetAPIInfo() const = 0;
+       
+        virtual void Init() =0;
+        virtual void Shutdown() = 0;
+
+        virtual void Clear() = 0;
+        virtual void SetClearColor(const Vec4& color) = 0;
+       
+        virtual void SubmitCommandBuffer(Ref<RenderCommandBuffer> commandBuffer) = 0;
+        virtual void BindDescriptorSet(uint32_t setIndex, const Ref<DescriptorSet>& set, const Ref<Pipeline>& pipeline) = 0;
+
+        virtual void DrawQuad(const Mat4& transform, const Ref<Texture2D>& texture) = 0;
+        virtual void DrawIndexed(uint32_t indexCount, uint32_t instanceCount = 1) = 0;
+
         enum class API {
-            None = 0, Vulkan = 1, DX12 = 2
+            None = 0,
+            Vulkan = 1,
+            DX12 = 2,
+            Metal = 3
         };
 
-        static API GetAPI() { return s_API; }
-        static void SetAPI(API api) { s_API = api; }
+        static API GetCurrentAPI();
 
-
-        static Ref<RendererAPI> Create();
-
-        virtual void Init() =0;
-        virtual void SetClearColor(const Vec4& color) = 0;
-        virtual void Clear() = 0;
-        virtual void SubmitCommandBuffer(GraphicsContext* context, Ref<RenderCommandBuffer> commandBuffer) = 0;
-        virtual void BindDescriptorSet(GraphicsContext* context, uint32_t setIndex, const Ref<DescriptorSet>& set, const Ref<Pipeline>& pipeline) = 0;
-
-        virtual void DrawQuad(GraphicsContext* context, const Mat4& transform, const Ref<Texture2D>& texture) = 0;
-    private:
-        static API s_API;
+	protected:
+        virtual GraphicsContext* GetContext() = 0;
     };
 }
 

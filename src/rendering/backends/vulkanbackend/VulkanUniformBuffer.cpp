@@ -7,7 +7,7 @@
 Axel::VulkanUniformBuffer::VulkanUniformBuffer(GraphicsContext* ctxt, uint32_t size, uint32_t binding)
 	:m_Size(size), m_Binding(binding)
 {
-    auto device = static_cast<VulkanDevice*>(ctxt->GetDevice());
+	auto device = std::static_pointer_cast<VulkanDevice>(ctxt->GetDevice());
 
     // 1. Create the Buffer
     VkBufferCreateInfo bufferInfo{};
@@ -60,11 +60,14 @@ void Axel::VulkanUniformBuffer::SetData(const void* data, uint32_t size, uint32_
     }
 }
 
-void Axel::VulkanUniformBuffer::Destroy()
+void Axel::VulkanUniformBuffer::Destroy(GraphicsContext* context)
 {
     if (m_Buffer != VK_NULL_HANDLE)
     {
-		auto device = static_cast<VulkanDevice*>(&GraphicsDevice::Get())->GetLogicalDevice();
+         auto m_Device = context->GetDevice();
+        auto device = static_cast<VulkanDevice*>(m_Device.get())->GetLogicalDevice();
+	
+
         // 1. Unmap first (if it was mapped)
         if (m_IsMapped) {
             vkUnmapMemory(device, m_BufferMemory);

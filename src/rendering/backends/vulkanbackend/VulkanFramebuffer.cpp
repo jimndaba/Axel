@@ -1,10 +1,10 @@
 #include "axelpch.h"
 #include "VulkanFramebuffer.h"
-#include "VulkanDevice.h"
+#include "VulkanContext.h"
 #include "VulkanRenderPass.h"
 #include <core/Logger.h>
 
-Axel::VulkanFramebuffer::VulkanFramebuffer(const FramebufferSpecification& spec, VulkanDevice& device) : m_Specification(spec),mDevice(device)
+Axel::VulkanFramebuffer::VulkanFramebuffer(VulkanContext* ctx,const FramebufferSpecification& spec) : m_Specification(spec),context(ctx)
 {
    RT_Invalidate();
 }
@@ -12,7 +12,8 @@ Axel::VulkanFramebuffer::VulkanFramebuffer(const FramebufferSpecification& spec,
 Axel::VulkanFramebuffer::~VulkanFramebuffer()
 {
     if (m_Framebuffer) {
-        vkDestroyFramebuffer(mDevice.GetLogicalDevice(), m_Framebuffer, nullptr);
+		auto mDevice = std::static_pointer_cast<VulkanDevice>(context->GetDevice());
+        vkDestroyFramebuffer(mDevice->GetLogicalDevice(), m_Framebuffer, nullptr);
     }
 }
 
@@ -25,7 +26,8 @@ void Axel::VulkanFramebuffer::Resize(uint32_t width, uint32_t height)
 
 void Axel::VulkanFramebuffer::RT_Invalidate()
 {
-    VkDevice device = mDevice.GetLogicalDevice();
+    auto mDevice = std::static_pointer_cast<VulkanDevice>(context->GetDevice());
+    VkDevice device = mDevice->GetLogicalDevice();
 
     if (m_Framebuffer) {
         vkDestroyFramebuffer(device, m_Framebuffer, nullptr);

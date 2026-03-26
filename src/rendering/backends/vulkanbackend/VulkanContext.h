@@ -7,6 +7,7 @@
 #include "vulkan/vulkan.h"
 #include "VulkanSwapchain.h"
 #include "VulkanCommanPool.h"
+#include <rendering/RenderAPI.h>
 
 namespace Axel
 {
@@ -17,20 +18,23 @@ namespace Axel
 	class VulkanContext : public GraphicsContext
 	{
 	public:
-		VulkanContext(void* windowHandle);
+		explicit VulkanContext(void* windowHandle);
 		virtual ~VulkanContext() override;
 
 		void Init() override;
+		void Shutdown() override;
 		void SwapBuffers() override;
+
+		RenderAPI::API GetCurrentAPI() const override;
+		Ref<GraphicsDevice> GetDevice() override { return m_Device; }
+		Ref<RenderAPI> GetRenderAPI()override {	return m_API;}
 
 		// Getters for the backend
 		VkInstance GetInstance() const { return m_Instance; }
 		VkSurfaceKHR GetSurface() const { return m_Surface; }
-		VulkanSwapchain* GetSwapchain() const { return m_Swapchain.get(); }
-		GraphicsDevice* GetDevice() { return m_Device.get(); }
+		VulkanSwapchain* GetSwapchain() const { return m_Swapchain.get(); }		
 
 		void OnWindowResize(const std::shared_ptr<WindowResizeEvent> &event);
-
 		VkSemaphore GetImageAvailableSemaphore() { return imageAvailableSemaphores[currentFrame]; }
 		VkSemaphore GetRenderFinishedSemaphore() { return renderFinishedSemaphores[currentFrame]; }
 		VkFence GetInFlightFence() { return inFlightFences[currentFrame]; }
@@ -48,7 +52,9 @@ namespace Axel
 	public:
 		virtual void BeginFrame() override;
 		virtual void EndFrame() override;
-		virtual void Shutdown() override;
+		
+
+		void Submit(Ref<RenderCommandBuffer> cmd) override;
 
 	private:
 		void CreateInstance();
@@ -68,6 +74,7 @@ namespace Axel
 		VkInstance m_Instance;
 		VkSurfaceKHR m_Surface;
 		VkDescriptorPool m_DescriptorPool;
+
 		Ref<RenderPass> m_MainRenderPass;
 		uint32_t m_WindowWidth;
 		uint32_t m_WindowHeight;
@@ -77,7 +84,6 @@ namespace Axel
 		std::vector<VkFence> inFlightFences;
 		std::vector<Ref<Framebuffer>> m_SwapChainFramebuffers;
 
-		Scope<VulkanDevice> m_Device;       // The GPU
 		Scope<VulkanSwapchain> m_Swapchain; // The Window's Image Buffers
 		Ref<VulkanCommandPool> m_CommandPool;
 		std::vector<VkCommandBuffer> m_CommandBuffers;

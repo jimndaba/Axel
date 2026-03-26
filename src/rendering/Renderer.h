@@ -34,7 +34,6 @@ namespace Axel
         uint32_t IndexCount = 0;
 
         GraphicsContext* Context;
-        Ref<RendererAPI> API;
         Ref<RenderCommandBuffer> ActiveCommandBuffer;
     };
 
@@ -65,9 +64,10 @@ namespace Axel
 
         static void DrawIndexed(uint32_t indexCount);
         static void DrawQuad(Mat4 transsform,Ref<Texture2D> texture);
-
-        static RendererAPI::API GetAPI() { return RendererAPI::GetAPI(); }
+        
         static Ref<RenderCommandBuffer> GetActiveCommandBuffer() { return s_Data->ActiveCommandBuffer; }
+
+		static RenderAPI::API GetCurrentAPI() { return s_Data->Context->GetCurrentAPI(); }
 
     private:        
         static Scope<RendererData> s_Data;

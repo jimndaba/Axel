@@ -39,7 +39,7 @@ namespace Axel
         virtual void Resize(uint32_t width, uint32_t height) = 0;
         virtual const FramebufferSpecification& GetSpecification() const = 0;
 
-        static Ref<Framebuffer> Create(const FramebufferSpecification& spec, GraphicsDevice* device);
+        static Ref<Framebuffer> Create(GraphicsContext* ctxt, const FramebufferSpecification& spec);
     };
 
 }

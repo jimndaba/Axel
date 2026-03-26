@@ -4,9 +4,9 @@
 #include "VulkanDevice.h"
 #include "VulkanContext.h"
 
-Axel::VkVertexBuffer::VkVertexBuffer(const GraphicsContext& context,float* vertices, uint32_t size, VulkanDevice& device)
-	:m_Device(device)
+Axel::VkVertexBuffer::VkVertexBuffer(GraphicsContext& context,float* vertices, uint32_t size)
 {
+	auto& m_Device = static_cast<VulkanDevice&>(*context.GetDevice().get());
     // 1. Create Staging Buffer (CPU Accessible)
     VulkanBuffer stagingBuffer(m_Device, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
@@ -24,7 +24,7 @@ Axel::VkVertexBuffer::VkVertexBuffer(const GraphicsContext& context,float* verti
 
 	auto& vkContext = static_cast<const VulkanContext&>(context);
     // 4. Copy from Staging to GPU (Requires a one-time command)
-    m_Device.CopyBuffer(vkContext, stagingBuffer.GetHandle(), m_Buffer->GetHandle(), size);
+    m_Device.CopyBuffer(stagingBuffer.GetHandle(), m_Buffer->GetHandle(), size);
     stagingBuffer.Destroy(m_Device.GetLogicalDevice());
 }
 
@@ -39,11 +39,13 @@ void Axel::VkVertexBuffer::Bind(GraphicsContext& context) const
     vkCmdBindVertexBuffers(cmd, 0, 1, &bufferHandle, offsets);
 }
 
-void Axel::VkVertexBuffer::Destroy()
+void Axel::VkVertexBuffer::Destroy(GraphicsContext* ctxt)
 {
     if (m_Buffer)
     {
-        m_Buffer->Destroy(m_Device.GetLogicalDevice());
+        auto m_Device = ctxt->GetDevice();
+		auto vkDevice = static_cast<VulkanDevice*>(m_Device.get());
+        m_Buffer->Destroy(vkDevice->GetLogicalDevice());
         delete m_Buffer;
     }
 }

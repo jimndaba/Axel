@@ -7,6 +7,8 @@
 #include <stb/stb_image.h>
 #include <core/Logger.h>
 
+#include <rendering/Renderer.h>
+
 std::shared_ptr<Axel::Texture2D> Axel::TextureLoader::Load(const std::string& path)
 {
     int width, height, channels;
@@ -20,7 +22,7 @@ std::shared_ptr<Axel::Texture2D> Axel::TextureLoader::Load(const std::string& pa
         return nullptr;
     }
     // Create the actual engine object (which sends data to the GPU)
-    Ref<Texture2D> texture = Texture2D::Create( width, height, data);
+    Ref<Texture2D> texture = Texture2D::Create(width, height, data);
 
     stbi_image_free(data);
     return texture;

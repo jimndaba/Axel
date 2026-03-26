@@ -7,11 +7,11 @@
 
 namespace Axel
 {
-    class VulkanDevice;
+    class VulkanContext;
 
     class VulkanFramebuffer : public Framebuffer {
     public:
-        VulkanFramebuffer(const FramebufferSpecification& spec, VulkanDevice& device);
+        VulkanFramebuffer(VulkanContext* ctxt, const FramebufferSpecification& spec);
         virtual ~VulkanFramebuffer() override;
 
         virtual const FramebufferSpecification& GetSpecification() const override { return m_Specification; }
@@ -25,7 +25,7 @@ namespace Axel
     private:
         FramebufferSpecification m_Specification;
         VkFramebuffer m_Framebuffer = VK_NULL_HANDLE;
-        VulkanDevice& mDevice;
+        VulkanContext* context;
     };
 
 

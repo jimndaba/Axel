@@ -46,13 +46,6 @@ void Axel::Application::Run()
 		InputState inputState;
 		if(m_ActiveGame)
 			m_ActiveGame->OnUpdate(dt,inputState);
-		//Render System can Kick off Here
-
-		//mRenderer->BeginFrame();
-		//mRenderer->BeginRenderPass(mContext->GetMainRenderPass(), true);
-		
-		//mRenderer->EndRenderPass(mContext->GetMainRenderPass());
-		//mRenderer->EndFrame();	
 	}
 
 	OnShutdown();
@@ -88,7 +81,7 @@ void Axel::Application::LoadGameDLL(const std::string& path)
 			m_GameContext = new GameContext();
 			m_GameContext->Bus = m_EventBus.get();
 			m_GameContext->Log = m_Logger.get();
-			m_GameContext->Device = mContext->GetDevice();
+			m_GameContext->Device = mContext->GetDevice().get();
 			m_GameContext->Graphics = mContext.get();
 			m_GameContext->Renderer = mRenderer.get();
 			m_ActiveGame->OnLoad(m_GameContext);

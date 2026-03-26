@@ -12,6 +12,7 @@ namespace Axel
     enum class AttachmentStoreOp { Store, DontCare };
 
     class GraphicsDevice;
+    class GraphicsContext;
 
     struct RenderPassSpecification {
         std::string DebugName;
@@ -28,7 +29,7 @@ namespace Axel
         virtual ~RenderPass() = default;
         virtual const RenderPassSpecification& GetSpecification() const = 0;
 		virtual void Destroy() = 0;
-        static Ref<RenderPass> Create(const RenderPassSpecification& spec,GraphicsDevice* device);  
+        static Ref<RenderPass> Create(GraphicsContext* ctxt ,const RenderPassSpecification& spec);  
     };
 
 
