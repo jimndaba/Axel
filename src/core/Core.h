@@ -5,8 +5,9 @@
 #include <memory>
 #include <string>
 #include <map>
-
-
+#include <spdlog/spdlog.h>
+#include <spdlog/formatter.h>
+#include <spdlog/fmt/fmt.h>
 
 namespace Axel
 {

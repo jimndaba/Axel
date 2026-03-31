@@ -26,7 +26,6 @@ namespace Axel
 		VkImage GetImage() const { return m_Image; }
 		VkImageView GetImageView() const { return m_ImageView; }
 		VkSampler GetSampler() const { return m_Sampler; }
-		VkDescriptorSet GetDescriptorSet() { return m_DescriptorSet; }
 		VkDeviceMemory GetDeviceMemory() const { return m_DeviceMemory; }
 
 		void* GetData() const override { return m_LocalData; }
@@ -38,9 +37,9 @@ namespace Axel
 		uint32_t m_RendererID = 0; // This would be the Vulkan image handle or similar
 
 		VkImage m_Image;
+		VkFormat m_Format;
 		VkImageView m_ImageView;
 		VkSampler m_Sampler;
-		VkDescriptorSet m_DescriptorSet; // The "Handle" the shader uses
 		VkDeviceMemory m_DeviceMemory; // The actual GPU memory allocation
 
 		void* m_LocalData = nullptr; // Temporary CPU-side storage for the texture data

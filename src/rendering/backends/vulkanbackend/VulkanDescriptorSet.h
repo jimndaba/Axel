@@ -19,7 +19,7 @@ namespace Axel
 		~VulkanDescriptorSet() = default;
 
 		virtual void Write(const std::string& name, const Ref<UniformBuffer>& buffer) override;
-		virtual void Write(const std::string& name, const Ref<Texture>& texture) override;
+		virtual void Write(const std::string& name, const Ref<Texture2D>& texture) override;
 		virtual void Update() override;
 		virtual void Destroy() override;	
 
@@ -34,6 +34,7 @@ namespace Axel
 		// Internal storage to track what needs to be updated
 		std::vector<VkWriteDescriptorSet> m_Writes;
 		std::vector<VkDescriptorBufferInfo> m_BufferInfos; // Keep these alive until Update()
+		std::vector<VkDescriptorImageInfo> m_ImageInfos; // Keep these alive until Update()
 	};
 }
 

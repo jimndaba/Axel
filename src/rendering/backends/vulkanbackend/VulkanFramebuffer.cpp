@@ -54,7 +54,7 @@ void Axel::VulkanFramebuffer::RT_Invalidate()
     VkResult result = vkCreateFramebuffer(device, &fbInfo, nullptr, &m_Framebuffer);
     if (result != VK_SUCCESS)
     {
-		AXLOG_ERROR("Failed to create Vulkan Framebuffer! Error Code: %d", result);
+		AXLOG_ERROR("Failed to create Vulkan Framebuffer! Error Code: %d");
     }
       
 

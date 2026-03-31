@@ -5,7 +5,7 @@
 #include "VulkanUniformBuffer.h"
 #include <core/Utils.h>
 #include <core/Logger.h>
-
+#include "VulkanTexture2D.h"
 Axel::VulkanDescriptorSet::VulkanDescriptorSet(VulkanContext* ctxt, const Ref<VulkanPipeline>& pipeline, uint32_t setIndex):
 	m_Pipeline(pipeline), m_SetIndex(setIndex), device(static_cast<VulkanDevice&>(*ctxt->GetDevice())), m_Context(ctxt)
 {
@@ -59,15 +59,47 @@ void Axel::VulkanDescriptorSet::Write(const std::string& name, const Ref<Uniform
     m_Writes.push_back(write);
 }
 
-void Axel::VulkanDescriptorSet::Write(const std::string& name, const Ref<Texture>& buffer)
+void Axel::VulkanDescriptorSet::Write(const std::string& name, const Ref<Texture2D>& texture)
 {
+    // 1. Ask the Shader/Pipeline: "Where is 'u_Camera'?"
+    const auto& vShader = std::static_pointer_cast<VulkanShader>(m_Pipeline->GetSpecification().Shader);
+    const auto& vTexture = std::static_pointer_cast<VulkanTexture2D>(texture);
+    const auto& resources = vShader->GetResources();
+
+    // Search the reflected map for the resource name
+    const ShaderResource* target = nullptr;
+    for (auto& [binding, res] : resources.at(m_SetIndex)) {
+        if (res.Name == name) {
+            target = &res;
+            break;
+        }
+    }
+
+    if (!target) return; // Resource not found in this set
+
+    VkDescriptorImageInfo imageInfo{};
+    imageInfo.sampler = vTexture->GetSampler();
+    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    imageInfo.imageView = vTexture->GetImageView();
+    m_ImageInfos.push_back(imageInfo); // Store to keep pointer valid
+
+    VkWriteDescriptorSet write{};
+    write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    write.dstSet = m_DescriptorSet;
+    write.dstBinding = target->Binding;
+    write.descriptorType = AxelToVulkanType(target->Type);
+    write.descriptorCount = 1;
+    write.pImageInfo = &m_ImageInfos.back();
+
+    m_Writes.push_back(write);
 }
 
 void Axel::VulkanDescriptorSet::Update()
 {
     vkUpdateDescriptorSets(device.GetLogicalDevice(), (uint32_t)m_Writes.size(), m_Writes.data(), 0, nullptr);
+    m_BufferInfos.clear();    
+    m_ImageInfos.clear();
     m_Writes.clear();
-    m_BufferInfos.clear();
 }
 
 void Axel::VulkanDescriptorSet::Destroy()

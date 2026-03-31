@@ -1,15 +1,17 @@
 #include "axelpch.h"
+#include "../../../core/Logger.h"
 #include "VulkanDevice.h"
 #include "VulkanContext.h"
 #include <map>
 #include <stdexcept>
 #include <set>
-#include "../../../core/Logger.h"
+
 #include <rendering/Texture.h>
 #include "VulkanTexture2D.h"
 #include "VulkanBuffer.h"
 #include "VkVertexBuffer.h"
 #include "VkIndexBuffer.h"
+#include "VulkanDescriptorSet.h"
 
 
 const std::vector<const char*> deviceExtensions = {
@@ -136,7 +138,7 @@ void Axel::VulkanDevice::Init()
     m_Devices.resize(deviceCount);
     vkEnumeratePhysicalDevices(instance, &deviceCount, m_Devices.data());
 
-    
+    vkGetPhysicalDeviceProperties(m_PhysicalDevice, &Properties);
 }
 
 void Axel::VulkanDevice::Shutdown()
@@ -160,6 +162,16 @@ void Axel::VulkanDevice::Shutdown()
         m_StagingBuffers.clear();
     }
 
+    //Cleanup texture descriptors
+    {
+
+        for (auto& descp : m_TextureDescriptorSets)
+        {
+            descp.second->Destroy();
+        }
+
+    }
+
 
     // Cleanup transfer command pool
     if (m_TransferCommandPool != VK_NULL_HANDLE) {
@@ -172,6 +184,8 @@ void Axel::VulkanDevice::Shutdown()
         vkDestroyDevice(m_LogicalDevice, nullptr);
         m_LogicalDevice = VK_NULL_HANDLE;
     }
+
+
     AXLOG_INFO("VulkanDevice shutdown complete");
 }
 
@@ -327,11 +341,126 @@ void Axel::VulkanDevice::EndSingleTimeCommands(VkCommandBuffer commandBuffer) {
 
 Axel::VulkanDevice::StagingBuffer& Axel::VulkanDevice::AcquireStagingBuffer(size_t minimumSize)
 {
-	return m_StagingBuffers.emplace_back(StagingBuffer{});
+    std::unique_lock lock(m_StagingBufferLock);
+
+    // ============================================
+    // STEP 1: Try to reuse an existing buffer
+    // ============================================
+
+    for (auto& buffer : m_StagingBuffers) {
+        // Check if buffer is:
+        // 1. Not currently in use
+        // 2. Large enough for our data
+        if (!buffer.IsInUse && buffer.Size >= minimumSize) {
+            buffer.IsInUse = true;
+            AXLOG_TRACE("Reused staging buffer: {} bytes", buffer.Size);
+            return buffer;
+        }
+    }
+
+    // ============================================
+    // STEP 2: Create new buffer if no suitable one exists
+    // ============================================
+
+    AXLOG_TRACE("Creating new staging buffer: {} bytes", minimumSize);
+
+    StagingBuffer newBuffer;
+    newBuffer.Size = minimumSize;
+    newBuffer.IsInUse = true;
+
+    // Create VkBuffer
+    VkBufferCreateInfo bufferInfo{};
+    bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    bufferInfo.size = minimumSize;
+    bufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;  // For uploading TO GPU
+    bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+    if (vkCreateBuffer(m_LogicalDevice, &bufferInfo, nullptr, &newBuffer.Handle) != VK_SUCCESS) {
+        AXLOG_ERROR("Failed to create staging buffer!");
+        // Return an empty buffer (caller should check Handle)
+        return m_StagingBuffers.emplace_back(newBuffer);
+    }
+
+    // Get memory requirements
+    VkMemoryRequirements memRequirements;
+    vkGetBufferMemoryRequirements(m_LogicalDevice, newBuffer.Handle, &memRequirements);
+
+    // Allocate HOST-VISIBLE memory (CPU can write to it)
+    VkMemoryAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    allocInfo.allocationSize = memRequirements.size;
+    allocInfo.memoryTypeIndex = FindMemoryType(
+        memRequirements.memoryTypeBits,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+    );
+
+    if (vkAllocateMemory(m_LogicalDevice, &allocInfo, nullptr, &newBuffer.Memory) != VK_SUCCESS) {
+        AXLOG_ERROR("Failed to allocate staging buffer memory!");
+        vkDestroyBuffer(m_LogicalDevice, newBuffer.Handle, nullptr);
+        return m_StagingBuffers.emplace_back(StagingBuffer{});
+    }
+
+    // Bind buffer to memory
+    vkBindBufferMemory(m_LogicalDevice, newBuffer.Handle, newBuffer.Memory, 0);
+
+    AXLOG_TRACE("Staging buffer created: handle={}, memory={}, size={}",
+        (void*)newBuffer.Handle, (void*)newBuffer.Memory, newBuffer.Size);
+
+    // Add to pool and return reference
+    m_StagingBuffers.push_back(newBuffer);
+    return m_StagingBuffers.back();
 }
 
 void Axel::VulkanDevice::ReleaseStagingBuffer(StagingBuffer& buffer)
 {
+    std::unique_lock lock(m_StagingBufferLock);
+
+    // ============================================
+    // Mark buffer as available for reuse
+    // ============================================
+
+    // Find the buffer in our list and mark it as not in use
+    for (auto& existingBuffer : m_StagingBuffers) {
+        if (existingBuffer.Handle == buffer.Handle) {
+            existingBuffer.IsInUse = false;
+            AXLOG_TRACE("Released staging buffer: {} bytes", existingBuffer.Size);
+            return;
+        }
+    }
+
+    AXLOG_WARN("Attempted to release staging buffer that is not in our pool!");
+}
+
+VkImageView Axel::VulkanDevice::CreateImageView(VkImage image, VkFormat format)
+{
+    VkImageViewCreateInfo viewInfo{};
+    viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    viewInfo.image = image;
+    viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    viewInfo.format = format;
+    viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    viewInfo.subresourceRange.baseMipLevel = 0;
+    viewInfo.subresourceRange.levelCount = 1;
+    viewInfo.subresourceRange.baseArrayLayer = 0;
+    viewInfo.subresourceRange.layerCount = 1;
+
+    VkImageView imageView;
+    if (vkCreateImageView(m_LogicalDevice, &viewInfo, nullptr, &imageView) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create image view!");
+    }
+
+    return imageView;
+}
+
+std::shared_ptr<Axel::DescriptorSet> Axel::VulkanDevice::GetTextureDescriptor(UUID& outid, Ref<Pipeline>& pipeline, uint32_t index)
+{
+    auto it = m_TextureDescriptorSets.find(outid);
+    if (it != m_TextureDescriptorSets.end())
+    {
+        return m_TextureDescriptorSets[outid];
+    }
+    m_TextureDescriptorSets[outid] = DescriptorSet::Create(m_Context, pipeline, index);
+    return m_TextureDescriptorSets[outid];
 }
 
 void Axel::VulkanDevice::WaitIdle()
@@ -363,7 +492,65 @@ std::shared_ptr<Axel::Texture2D> Axel::VulkanDevice::CreateTexture(uint32_t widt
 
 bool Axel::VulkanDevice::UploadTexture(Ref<Texture2D> texture)
 {
-    return false;
+    auto vkTexture = std::dynamic_pointer_cast<VulkanTexture2D>(texture);
+    if (!vkTexture) {
+        AXLOG_ERROR("VulkanDevice::UploadTexture: texture is not VulkanTexture2D");
+        return false;
+    }
+
+    // ✅ Get texture data
+    uint32_t width = vkTexture->GetWidth();
+    uint32_t height = vkTexture->GetHeight();
+    const void* cpuData = vkTexture->GetData();
+
+    if (!cpuData) {
+        AXLOG_ERROR("VulkanDevice::UploadTexture: texture has no CPU data");
+        return false;
+    }
+
+    uint32_t dataSize = width * height * 4; // RGBA = 4 bytes per pixel
+
+    // ============================================
+        // STEP 1: Create Staging Buffer (CPU → GPU)
+        // ============================================
+
+    auto stagingBuffer = AcquireStagingBuffer(dataSize);
+
+    void* mappedMemory;
+    vkMapMemory(m_LogicalDevice, stagingBuffer.Memory, 0, dataSize, 0, &mappedMemory);
+    memcpy(mappedMemory, cpuData, dataSize);
+    vkUnmapMemory(m_LogicalDevice, stagingBuffer.Memory);
+
+    VkImage image = vkTexture->GetImage();
+    if (image == VK_NULL_HANDLE) {
+        AXLOG_ERROR("VulkanDevice::UploadTexture: texture has no VkImage");
+        vkDestroyBuffer(m_LogicalDevice, stagingBuffer.Handle, nullptr);
+        vkFreeMemory(m_LogicalDevice, stagingBuffer.Memory, nullptr);
+        return false;
+    }
+
+    auto cmd = BeginSingleTimeCommands();
+
+    TransitionImageLayout(
+        cmd,
+        image,
+        VK_IMAGE_LAYOUT_UNDEFINED,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
+    );
+
+    CopyBufferToImage(cmd, stagingBuffer.Handle, image, vkTexture->GetWidth(), vkTexture->GetHeight());
+   
+    TransitionImageLayout(
+        cmd,
+        image,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+    );
+
+    EndSingleTimeCommands(cmd);
+
+    ReleaseStagingBuffer(stagingBuffer);
+    return true;
 }
 
 bool Axel::VulkanDevice::UploadMesh(Ref<Mesh> mesh)
@@ -393,8 +580,7 @@ void Axel::VulkanDevice::DestroyTexture(Ref<Texture2D>& texture)
     VkDevice device = m_LogicalDevice;
 
     // 1. Wait for the GPU to finish current work 
-    // (In a production engine, you'd use a Deletion Queue, but for Sandbox, this is safe)
-    vkDeviceWaitIdle(device);
+    //    // (In a production engine, you'd use a Deletion Queue, but for Sandbox, this is safe)   
 
     // 2. Destroy the "Shader Link"
     if (vkTex->GetSampler())
@@ -412,57 +598,6 @@ void Axel::VulkanDevice::DestroyTexture(Ref<Texture2D>& texture)
         vkFreeMemory(device, vkTex->GetDeviceMemory(), nullptr);
 
     AXLOG_INFO("VulkanDevice: Texture destroyed successfully.");
-}
-
-void Axel::VulkanDevice::SubmitTextureToGPU(Ref<Texture2D>& texture)
-{
-    auto vkTex = std::static_pointer_cast<VulkanTexture2D>(texture);
-    auto deviceMemory = vkTex->GetDeviceMemory();
-
-    // Inside VulkanTexture2D creation
-    VkMemoryRequirements memRequirements;
-    vkGetImageMemoryRequirements(m_LogicalDevice, vkTex->GetImage(), &memRequirements);
-
-    VkMemoryAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    allocInfo.allocationSize = memRequirements.size;
-    allocInfo.memoryTypeIndex = FindMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-	
-    // This is the handle you are missing!
-    if (vkAllocateMemory(m_LogicalDevice, &allocInfo, nullptr, &deviceMemory) != VK_SUCCESS) {
-        throw std::runtime_error("failed to allocate image memory!");
-    }
-
-    vkBindImageMemory(m_LogicalDevice, vkTex->GetImage(), deviceMemory, 0);
-
-    // 1. Calculate size (Assuming RGBA8 = 4 bytes per pixel)
-    VkDeviceSize imageSize = vkTex->GetWidth() * vkTex->GetHeight() * 4;
-
-    // 2. Create a temporary Staging Buffer (CPU-Visible)
-    VulkanBuffer stagingBuffer(*this,imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-    // 3. Map memory and copy the CPU data into the staging buffer 
-    // 2. Map and Copy Data
-    void* data;
-    vkMapMemory(m_LogicalDevice, stagingBuffer.GetMemory(), 0, imageSize, 0, &data);
-    memcpy(data, vkTex->GetData(), (size_t)imageSize);
-    vkUnmapMemory(m_LogicalDevice, stagingBuffer.GetMemory());
-
-    // 4. Record a one-time command buffer to perform the transfer
-    VkCommandBuffer cmd = BeginSingleTimeCommands();
-
-    // Transition Undefined -> Transfer Dst
-    TransitionImageLayout(cmd, vkTex->GetImage(), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-
-    // Copy Buffer to Image
-    CopyBufferToImage(cmd, stagingBuffer.GetHandle(), vkTex->GetImage(), vkTex->GetWidth(), vkTex->GetHeight());
-
-    // Transition Transfer Dst -> Shader Read Only
-    TransitionImageLayout(cmd, vkTex->GetImage(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
-    EndSingleTimeCommands(cmd);    
 }
 
 void Axel::VulkanDevice::TransitionImageLayout(VkCommandBuffer cb, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout)

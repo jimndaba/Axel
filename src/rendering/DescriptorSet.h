@@ -9,7 +9,7 @@ namespace Axel
 {
 	class GraphicsContext;
 	class UniformBuffer;
-	class Texture;
+	class Texture2D;
 	class Pipeline;
 
 	class AX_API DescriptorSet
@@ -19,7 +19,7 @@ namespace Axel
 
 		// "Write" data into the set by Name (matches GLSL name)
 		virtual void Write(const std::string& name, const Ref<UniformBuffer>& buffer) = 0;
-		virtual void Write(const std::string& name, const Ref<Texture>& texture) = 0;
+		virtual void Write(const std::string& name, const Ref<Texture2D>& texture) = 0;
 
 		// The "Commit" or "Update" step that actually tells the GPU 
 		virtual void Update() = 0;

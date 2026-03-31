@@ -30,6 +30,7 @@ namespace Axel
        
         virtual void SubmitCommandBuffer(Ref<RenderCommandBuffer> commandBuffer) = 0;
         virtual void BindDescriptorSet(uint32_t setIndex, const Ref<DescriptorSet>& set, const Ref<Pipeline>& pipeline) = 0;
+        virtual void BindTextureDescriptorSet(uint32_t setIndex, Ref<Texture2D>& texture,Ref<Pipeline>& pipeline) = 0;
 
         virtual void DrawQuad(const Mat4& transform, const Ref<Texture2D>& texture) = 0;
         virtual void DrawIndexed(uint32_t indexCount, uint32_t instanceCount = 1) = 0;

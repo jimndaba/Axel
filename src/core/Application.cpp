@@ -9,7 +9,7 @@ Axel::Application::Application()
 {
 	m_Logger = std::make_unique<Logger>();
 	m_Logger->Init();
-	m_Logger->Info("Axel Engine: Booting...");
+	AXLOG_INFO("Axel Engine: Booting...");
 
 	m_EventBus = std::make_unique<Eventbus>();
 	

@@ -17,7 +17,7 @@ namespace Axel
     class UIElement;
     class CameraComponent;
     class Texture2D;
-
+    class Pipeline;
 
     struct AX_API RendererData {
         // The View/Projection data for the current frame
@@ -60,7 +60,11 @@ namespace Axel
         static void SubmitParticle(const Particle& particle);
         static void SubmitUI(Ref<UIElement> element);
         static void SubmitInstanced(Ref<Mesh> mesh, Ref<Material> material, const std::vector<glm::mat4>& transforms);
+
+        static Ref<DescriptorSet>& ProvideTextureDescriptor(const Ref<Texture2D>& texture,Ref<Pipeline>& pipeline, uint32_t index);
+        static void RealeaseTextureDescriptor(const Ref<Texture2D>& texture,Ref<Pipeline>& pipeline);
         static void BindDescriptorSet(uint32_t setIndex, const Ref<DescriptorSet>& set, const Ref<Pipeline>& pipeline);
+        static void BindTextureDescriptorSet(uint32_t setIndex, Ref<Texture2D>& texture,Ref<Pipeline>& pipeline);
 
         static void DrawIndexed(uint32_t indexCount);
         static void DrawQuad(Mat4 transsform,Ref<Texture2D> texture);
@@ -68,6 +72,7 @@ namespace Axel
         static Ref<RenderCommandBuffer> GetActiveCommandBuffer() { return s_Data->ActiveCommandBuffer; }
 
 		static RenderAPI::API GetCurrentAPI() { return s_Data->Context->GetCurrentAPI(); }
+        static GraphicsContext* GetGraphicsContext() { return s_Data->Context; }
 
     private:        
         static Scope<RendererData> s_Data;

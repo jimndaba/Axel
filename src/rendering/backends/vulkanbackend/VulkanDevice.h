@@ -12,7 +12,7 @@
 namespace Axel
 {
     class VulkanContext;
-
+    class VulkanPipeline;
    
 
     class VulkanDevice : public GraphicsDevice {
@@ -43,6 +43,9 @@ namespace Axel
         Ref<IndexBuffer> CreateIndexBuffer(uint32_t* indices, uint32_t count)override;
         Ref<Texture2D> CreateTexture(uint32_t width, uint32_t height, const unsigned char* data) override;
 
+        void DestroyTexture(Ref<Texture2D>& texture) override;
+
+              
         // =========================
         // GPU Upload (GraphicsDevice interface)
         // =========================
@@ -62,8 +65,7 @@ namespace Axel
         const DeviceCapabilities& GetCaps() const;
         bool checkValidationLayerSupport();       
 
-		void DestroyTexture(Ref<Texture2D>& texture);
-        void SubmitTextureToGPU(Ref<Texture2D>& texture);
+	
 
         void TransitionImageLayout(VkCommandBuffer cb, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout);
         void CopyBufferToImage(VkCommandBuffer cb, VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
@@ -75,6 +77,12 @@ namespace Axel
         StagingBuffer& AcquireStagingBuffer(size_t minimumSize);
         void ReleaseStagingBuffer(StagingBuffer& buffer);
 
+        VkImageView CreateImageView(VkImage image, VkFormat format);
+     
+        VkPhysicalDeviceProperties Properties;
+
+        void CreateBufferDescriptorSet(UUID& outid,const Ref<Pipeline>& pipeline, uint32_t index);
+        virtual Ref<DescriptorSet> GetTextureDescriptor(UUID& outid, Ref<Pipeline>& pipeline, uint32_t index) override;
     private:
         VkPhysicalDevice m_PhysicalDevice;
         VkDevice m_LogicalDevice;
@@ -87,6 +95,8 @@ namespace Axel
         std::vector<VkPhysicalDevice> m_Devices;
 
         std::unordered_map<UUID, VkImage> m_ResidentTextures;
+        std::unordered_map<UUID, Ref<DescriptorSet>> m_TextureDescriptorSets;
+
         std::shared_mutex m_ResidentTextureLock;
       
         std::vector<StagingBuffer> m_StagingBuffers;
@@ -99,6 +109,7 @@ namespace Axel
         bool checkDeviceExtensionSupport(VkPhysicalDevice device);
         QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface);        
         void CreateLogicalDevice(VkSurfaceKHR surface);
+
     };
 
 

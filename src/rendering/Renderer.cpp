@@ -13,6 +13,7 @@ void Axel::Renderer::Init(GraphicsContext* context)
 {
 	s_Data = std::make_unique<RendererData>();
     s_Data->Context = context;
+
     AXLOG_INFO("Context Initialized.");
 
     // Create a 1x1 white buffer
@@ -23,7 +24,6 @@ void Axel::Renderer::Init(GraphicsContext* context)
 
 void Axel::Renderer::Shutdown()
 {
-	s_Data->Context->Shutdown();
 	s_Data.reset();
 }
 
@@ -32,7 +32,9 @@ void Axel::Renderer::BeginFrame()
     // 1. Tell the Context (Vulkan) to wait for fences and acquire the next image
     s_Data->Context->BeginFrame();
     s_Data->ActiveCommandBuffer = s_Data->Context->GetCurrentCommandBuffer();
-
+    s_Data->MeshPackets.clear();
+    s_Data->UIPackets.clear();
+    s_Data->ParticlePackets.clear();
 }
 
 void Axel::Renderer::EndFrame()
@@ -48,11 +50,6 @@ void Axel::Renderer::BeginRenderPass(Ref<RenderPass> renderPass, bool clear)
     // 2. Tell the active command buffer to record the "Begin" command
     // The Command Buffer implementation will handle the Vulkan specifics    
     s_Data->ActiveCommandBuffer->BeginRenderPass(renderPass, targetFramebuffer);
-
-
-    auto renderAPI = s_Data->Context->GetRenderAPI();
-    renderAPI->SetClearColor({ 0.1f, 0.1f, 0.1f, 1.0f });
-    renderAPI->Clear();
 }
 
 void Axel::Renderer::EndRenderPass(Ref<RenderPass> renderPass)
@@ -109,11 +106,35 @@ void Axel::Renderer::SubmitInstanced(Ref<Mesh> mesh, Ref<Material> material, con
     */
 }
 
+
+std::shared_ptr<Axel::DescriptorSet>& Axel::Renderer::ProvideTextureDescriptor(const Ref<Texture2D>& texture, Ref<Pipeline>& pipeline, uint32_t index)
+{
+    auto device = s_Data->Context->GetDevice();
+    auto descriptor = device->GetTextureDescriptor(texture->AssetID,pipeline, index);
+    if (descriptor)
+        return descriptor;
+
+    AXLOG_ERROR("Faield to get texture descriptor: {}", texture->AssetID);
+    return descriptor;
+}
+
+void Axel::Renderer::RealeaseTextureDescriptor(const Ref<Texture2D>& texture,Ref<Pipeline>& pipeline)
+{
+}
+
 void Axel::Renderer::BindDescriptorSet(uint32_t setIndex, const Ref<DescriptorSet>& set, const Ref<Pipeline>& pipeline)
 {
     auto renderAPI = s_Data->Context->GetRenderAPI();
     renderAPI->BindDescriptorSet(setIndex, set, pipeline);
 }
+
+void Axel::Renderer::BindTextureDescriptorSet(uint32_t setIndex, Ref<Texture2D>& texture,Ref<Pipeline>& pipeline)
+{
+    auto renderAPI = s_Data->Context->GetRenderAPI();
+    renderAPI->BindTextureDescriptorSet(setIndex, texture, pipeline);
+}
+
+
 
 void Axel::Renderer::DrawIndexed(uint32_t indexCount)
 {

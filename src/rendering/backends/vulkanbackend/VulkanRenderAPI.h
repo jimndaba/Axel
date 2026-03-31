@@ -12,6 +12,7 @@ namespace Axel
     class VulkanContext;
     class VulkanDevice;
     class VertexBuffer;
+
     class VulkanRenderAPI : public RenderAPI {
     public:
         explicit VulkanRenderAPI(VulkanContext* context);
@@ -33,6 +34,7 @@ namespace Axel
         virtual void DrawQuad(const Mat4& transform, const Ref<Texture2D>& texture) override;
         virtual void SubmitCommandBuffer(Ref<RenderCommandBuffer> commandBuffer) override;
 		virtual void BindDescriptorSet(uint32_t setIndex, const Ref<DescriptorSet>& set, const Ref<Pipeline>& pipeline) override;
+        virtual void BindTextureDescriptorSet(uint32_t setIndex, Ref<Texture2D>& texture,Ref<Pipeline>& pipeline) override;
 
     protected:
 		virtual GraphicsContext* GetContext() override { return (GraphicsContext*)m_Context; }

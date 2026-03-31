@@ -3,10 +3,8 @@
 #include "VulkanRenderAPI.h"
 #include "VulkanCommandBuffer.h"
 #include <rendering/backends/vulkanbackend/VulkanContext.h>
-#include "VulkanContext.h"
 #include "VulkanPipeline.h"
 #include "VulkanDescriptorSet.h"
-
 #include "VulkanTexture2D.h"
 #include "VulkanShader.h"
 
@@ -22,10 +20,7 @@ void Axel::VulkanRenderAPI::Init()
 }
 
 void Axel::VulkanRenderAPI::Shutdown()
-{
-    if (m_Context) {
-        m_Context->GetDevice()->WaitIdle();
-    }
+{    
     AXLOG_INFO("VulkanRenderAPI shutdown");
 }
 
@@ -120,6 +115,8 @@ void Axel::VulkanRenderAPI::BindDescriptorSet(uint32_t setIndex, const Ref<Descr
 	auto cmdbuffer = static_cast<VulkanContext*>(m_Context)->GetActiveCommandBuffer();
     auto vkSet = std::static_pointer_cast<VulkanDescriptorSet>(set)->GetHandle();
     auto vkPipeline = std::static_pointer_cast<VulkanPipeline>(pipeline);
+    
+    
 
     vkCmdBindDescriptorSets(
         cmdbuffer, // The internal VkCommandBuffer
@@ -131,6 +128,32 @@ void Axel::VulkanRenderAPI::BindDescriptorSet(uint32_t setIndex, const Ref<Descr
         0, nullptr
     );
 
+}
+
+void Axel::VulkanRenderAPI::BindTextureDescriptorSet(uint32_t setIndex, Ref<Texture2D>& texture, Ref<Pipeline>& pipeline)
+{
+    auto descriptor = m_Context->GetDevice()->GetTextureDescriptor(texture->AssetID,pipeline,setIndex);
+    if (descriptor)
+    {
+        auto cmdbuffer = static_cast<VulkanContext*>(m_Context)->GetActiveCommandBuffer();
+        auto vkSet = std::static_pointer_cast<VulkanDescriptorSet>(descriptor)->GetHandle();
+        auto vkPipeline = std::static_pointer_cast<VulkanPipeline>(pipeline);
+
+        
+        vkCmdBindDescriptorSets(
+            cmdbuffer, // The internal VkCommandBuffer
+            VK_PIPELINE_BIND_POINT_GRAPHICS,
+            vkPipeline->GetLayout(), // Using the reflected layout!
+            setIndex,
+            1,
+            &vkSet,
+            0, nullptr
+        );
+    }
+    else
+    {
+        AXLOG_ERROR("No Descriptor found for Texture: {}", texture->AssetID);
+    }
 }
 
 void Axel::VulkanRenderAPI::ValidateCommandBuffer(Ref<RenderCommandBuffer> commandBuffer)

@@ -97,7 +97,7 @@ Axel::VulkanPipeline::VulkanPipeline(const PipelineSpecification& spec, VulkanDe
     rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
     rasterizer.polygonMode = AxelPolygonModeToVulkan(spec.FillMode);
     rasterizer.cullMode = AxelCullModeToVulkan(spec.FaceCulling);
-    rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE; // Standard for Axel
+    rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE; // Standard for Axel
     rasterizer.lineWidth = 1.0f;
 
     

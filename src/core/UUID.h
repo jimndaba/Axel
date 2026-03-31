@@ -6,8 +6,10 @@
 #include <xhash>
 
 
+
 namespace Axel
 {
+   
 		
     class UUID {
     public:
@@ -16,6 +18,7 @@ namespace Axel
         UUID(const UUID&) = default;
 
         operator uint64_t() const { return m_UUID; }
+        std::string ToString() const;
 
     private:
         uint64_t m_UUID;
@@ -24,6 +27,8 @@ namespace Axel
 
 
 }
+
+
 
 // Specialization for std::hash so we can use UUID as a key in std::unordered_map
 namespace std {

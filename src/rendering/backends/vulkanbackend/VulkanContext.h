@@ -48,7 +48,7 @@ namespace Axel
 		virtual Ref<Framebuffer> GetCurrentFramebuffer() override;
 		virtual Ref<RenderPass> GetMainRenderPass() override;
 		virtual Ref<RenderCommandBuffer> GetCurrentCommandBuffer() override;
-
+		
 	public:
 		virtual void BeginFrame() override;
 		virtual void EndFrame() override;
@@ -74,6 +74,7 @@ namespace Axel
 		VkInstance m_Instance;
 		VkSurfaceKHR m_Surface;
 		VkDescriptorPool m_DescriptorPool;
+		
 
 		Ref<RenderPass> m_MainRenderPass;
 		uint32_t m_WindowWidth;
