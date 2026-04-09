@@ -8,7 +8,7 @@
 namespace Axel
 {
 	class GraphicsContext;
-	class AX_API Texture2D : public Asset
+	class AX_API Texture2D : public  IAsset
 	{
 
 	public:
@@ -19,7 +19,7 @@ namespace Axel
 		virtual void SetData(const void* data, uint32_t size) = 0;
 		virtual void* GetData() const = 0;
 		virtual void SetLocalData(void* data) = 0;
-
+		virtual AssetTypeOptions GetType() const override { return AssetTypeOptions::Texture2D ; }
 		static Ref<Texture2D> Create(uint32_t width, uint32_t height, const unsigned char* data);
 	
 	};

@@ -7,21 +7,21 @@
 
 namespace Axel
 {
-    static VkPolygonMode AxelPolygonModeToVulkan(PolygonMode mode) {
+    static VkPolygonMode AxelPolygonModeToVulkan(PolygonModeOptions mode) {
         switch (mode) {
-        case PolygonMode::Fill:  return VK_POLYGON_MODE_FILL;
-        case PolygonMode::Line:  return VK_POLYGON_MODE_LINE;
-        case PolygonMode::Point: return VK_POLYGON_MODE_POINT;
+        case PolygonModeOptions::Fill:  return VK_POLYGON_MODE_FILL;
+        case PolygonModeOptions::Line:  return VK_POLYGON_MODE_LINE;
+        case PolygonModeOptions::Point: return VK_POLYGON_MODE_POINT;
         }
         return VK_POLYGON_MODE_FILL;
     }
 
-    static VkCullModeFlags AxelCullModeToVulkan(CullMode mode) {
+    static VkCullModeFlags AxelCullModeToVulkan(CullModeOptions mode) {
         switch (mode) {
-        case CullMode::None:         return VK_CULL_MODE_NONE;
-        case CullMode::Front:        return VK_CULL_MODE_FRONT_BIT;
-        case CullMode::Back:         return VK_CULL_MODE_BACK_BIT;
-        case CullMode::FrontAndBack: return VK_CULL_MODE_FRONT_AND_BACK;
+        case CullModeOptions::None:         return VK_CULL_MODE_NONE;
+        case CullModeOptions::Front:        return VK_CULL_MODE_FRONT_BIT;
+        case CullModeOptions::Back:         return VK_CULL_MODE_BACK_BIT;
+        case CullModeOptions::FrontAndBack: return VK_CULL_MODE_FRONT_AND_BACK;
         }
         return VK_CULL_MODE_BACK_BIT;
     }

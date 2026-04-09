@@ -5,6 +5,7 @@
 
 #include <core/Core.h>
 #include "GraphicsCore.h"
+#include <assets/AssetBase.h>
 
 namespace Axel
 {
@@ -12,7 +13,7 @@ namespace Axel
 	using BindingIndex = uint32_t;
 
 	class GraphicsDevice;
-	class AX_API Shader
+	class AX_API Shader : public IAsset
 	{
 		
 
@@ -22,6 +23,7 @@ namespace Axel
 		std::map<SetIndex, std::map<BindingIndex, ShaderResource>> GetResources() const { return m_Resources; }
 		static Ref<Shader> Create(GraphicsDevice& device,const std::string& filepath);		
 		virtual void Destroy() = 0;
+		virtual AssetTypeOptions GetType() const { return AssetTypeOptions::Shader; }
 		std::map<SetIndex, std::map<BindingIndex, ShaderResource>> m_Resources;
 
 	};

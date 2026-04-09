@@ -25,6 +25,26 @@ Axel::ShaderResourceType MapType(SpvReflectDescriptorType type) {
     }
 }
 
+Axel::PropertyType MapMemberType(const SpvReflectBlockVariable& var) {
+    // Safety check for the pointer
+    if (!var.type_description) return Axel::PropertyType::Unknown;
+
+    auto flags = var.type_description->type_flags;
+
+    if (flags & SPV_REFLECT_TYPE_FLAG_FLOAT) {
+        auto components = var.numeric.vector.component_count;
+        if (components == 1) return Axel::PropertyType::Float;
+        if (components == 2) return Axel::PropertyType::Vec2;
+        if (components == 3) return Axel::PropertyType::Vec3;
+        if (components == 4) return Axel::PropertyType::Vec4;
+    }
+
+    if (flags & SPV_REFLECT_TYPE_FLAG_INT)  return Axel::PropertyType::Int;
+    if (flags & SPV_REFLECT_TYPE_FLAG_BOOL) return Axel::PropertyType::Bool;
+
+    return Axel::PropertyType::Unknown;
+}
+
 Axel::VulkanShader::VulkanShader(GraphicsDevice& device, const std::map<ShaderStage, std::string>& shaderFiles) :m_Device(device)
 {
 	auto vdevice = static_cast<VulkanDevice*>(&device);
@@ -104,6 +124,26 @@ void Axel::VulkanShader::Reflect(const std::vector<uint32_t>& spirvCode, ShaderS
             }
             else {
                 resource.Size = binding->block.size;
+            }
+
+            if (resource.Type == ShaderResourceType::UniformBuffer || resource.Type == ShaderResourceType::StorageBuffer) {
+                resource.Size = binding->block.size;
+
+                // Drill into the members of the struct
+                for (uint32_t j = 0; j < binding->block.member_count; ++j) {
+                    auto& spvMember = binding->block.members[j];
+
+                    ShaderMember member;
+                    member.Name = spvMember.name;
+                    member.Offset = spvMember.offset;
+                    member.Size = spvMember.size;
+
+                    // You'll need a MapMemberType function to convert 
+                    // SpvReflectTypeFlags/numeric types to your PropertyType (Float, Vec4, etc)
+                    member.Type = MapMemberType(spvMember);
+
+                    resource.Members.push_back(member);
+                }
             }
 
             // Store in a map: m_Resources[set_index][binding_index]

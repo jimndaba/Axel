@@ -13,12 +13,14 @@ namespace Axel
 
 
 	struct AX_API PipelineSpecification {
-
 		Ref<Shader> Shader;
 		BufferLayout Layout;
-		PolygonMode FillMode = PolygonMode::Fill;
-		CullMode FaceCulling = CullMode::Back;
+		PolygonModeOptions FillMode = PolygonModeOptions::Fill;
+		CullModeOptions FaceCulling = CullModeOptions::Back;
+		BlendingModeOptions BlendMode = BlendingModeOptions::None;
+
 		bool DepthTest = true;
+		bool DepthWrite = true;
 		Ref<RenderPass> TargetRenderPass;
 	};
 

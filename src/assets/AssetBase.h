@@ -7,7 +7,7 @@
 
 namespace Axel
 {
-    enum class AssetTypeOptions { None = 0, Texture2D, Mesh, Shader, Material, Scene };
+    enum class AssetTypeOptions { None = 0, Texture2D, Mesh, Shader,MaterialTemplate, Material, Scene };
 
     class AX_API  IAsset {
     public:

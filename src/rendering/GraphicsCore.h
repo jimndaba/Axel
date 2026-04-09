@@ -5,17 +5,22 @@
 
 namespace Axel
 {
-    enum class PolygonMode {
+    enum class PolygonModeOptions {
         Fill = 0,
         Line,   // Wireframe
         Point
     };
 
-    enum class CullMode {
+    enum class CullModeOptions {
         None = 0,
         Front,
         Back,
         FrontAndBack
+    };
+
+    enum class BlendingModeOptions
+    {
+        None = 0,
     };
 
     enum class ShaderDataType {
@@ -53,6 +58,17 @@ namespace Axel
         return a;
     }
 
+    enum class PropertyType {
+        Float, Int, Vec2, Vec3, Vec4, Bool, Texture2D, TextureCube,Unknown
+    };
+
+    struct ShaderMember {
+        std::string Name;
+        PropertyType Type;
+        uint32_t Size;
+        uint32_t Offset;
+    };
+
     struct ShaderResource {
         std::string Name;
         ShaderResourceType Type ;
@@ -61,6 +77,7 @@ namespace Axel
         uint32_t Set = 0;    // Crucial for Vulkan/DX12 frequency levels
         uint32_t Count = 0;  // For arrays of textures/buffers
         uint32_t Size = 0;  // For arrays of textures/buffers
+        std::vector<ShaderMember> Members;
     };
 }
 #endif  

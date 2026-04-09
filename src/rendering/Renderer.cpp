@@ -11,7 +11,7 @@
 #include "Buffers.h"
 #include "backends/FrameBuffer.h"
 
-
+#include <assets/AssetManager.h>
 #include <assets/Loaders/TextureLoader.h>
 #include "DescriptorSet.h"
 
@@ -53,7 +53,8 @@ void Axel::Renderer::Init(GraphicsContext* context)
     s_Data->QuadIndexBuffer = Axel::IndexBuffer::Create(indices, 6, s_Data->Context);
 
     //3. Load Shader & Build Pipeline
-    s_Data->QuadShader = Axel::Shader::Create(*s_Data->Context->GetDevice().get(), "Assets/Shaders/Quad");
+    s_Data->QuadShader = AssetManager::GetAssetByName<Shader>("SpriteShader");
+    //Axel::Shader::Create(*s_Data->Context->GetDevice().get(), "Assets/Shaders/Quad");
 
     PipelineSpecification spec;
     spec.Shader = s_Data->QuadShader;

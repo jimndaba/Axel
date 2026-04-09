@@ -96,5 +96,15 @@ void Axel::Application::Init()
 	// 2. Create the Graphics Context (VulkanContext)
 	mContext = GraphicsContext::Create(m_Platform->GetNativeWindow());
 	mContext->Init();
+
+	m_AssetaManager = std::make_unique<AssetManager>(mContext->GetDevice().get());
+
+	Axel::AssetMetadata SpriteMeta{};
+	SpriteMeta.Name = "SpriteShader";
+	SpriteMeta.AssetType = Axel::AssetTypeOptions::Shader;
+	SpriteMeta.Path = "Assets/Shaders/Quad";
+	Axel::AssetManager::RegisterAsset(SpriteMeta);
+
+
 	Renderer::Init(mContext.get());
 }

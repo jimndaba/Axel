@@ -57,7 +57,7 @@
     <ClInclude Include="src\rendering\Shader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\rendering\Material.h">
+    <ClInclude Include="src\rendering\MaterialTemplate.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\rendering\Texture.h">
@@ -341,7 +341,7 @@
     <ClCompile Include="src\rendering\backends\vulkanbackend\VulkanShaderStorageBuffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\rendering\Material.cpp">
+    <ClCompile Include="src\rendering\MaterialTemplate.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

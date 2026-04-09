@@ -7,12 +7,13 @@
 #include "core/Logger.h"
 #include "events/EventBus.h"
 
-
+#include <assets/AssetManager.h>
 
 namespace Axel
 {
     class GraphicsContext;
     class Renderer;
+    class AssetManager;
 
     class Application {
     public:
@@ -44,6 +45,7 @@ namespace Axel
         std::unique_ptr<Logger>     m_Logger;
         std::unique_ptr<Eventbus>   m_EventBus;
         std::unique_ptr<AxPlatform>   m_Platform;
+        std::unique_ptr<AssetManager>   m_AssetaManager;
 
         std::unique_ptr<GraphicsContext> mContext;
         std::unique_ptr<Renderer> mRenderer;
