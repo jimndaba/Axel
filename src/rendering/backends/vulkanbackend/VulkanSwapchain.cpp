@@ -153,6 +153,13 @@ VkPresentModeKHR Axel::VulkanSwapchain::ChooseSwapPresentMode(const std::vector<
     for (const auto& mode : availablePresentModes) {
         if (mode == VK_PRESENT_MODE_MAILBOX_KHR) return mode;
     }
+
+    // 2. IMMEDIATE is the rawest "Off" switch
+    for (const auto& mode : availablePresentModes) {
+        if (mode == VK_PRESENT_MODE_IMMEDIATE_KHR)
+            return mode;
+    }
+
     return VK_PRESENT_MODE_FIFO_KHR;
 }
 

@@ -15,5 +15,4 @@ void Axel::AssetManager::SaveRegistry(const std::string& path)
 void Axel::AssetManager::LoadRegistry(const std::string& path)
 {
 	YAMLArchive ar(ArchiveModeOptions::Load, path);
-
 }

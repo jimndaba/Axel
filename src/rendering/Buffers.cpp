@@ -4,6 +4,7 @@
 #include "backends/vulkanbackend/VkVertexBuffer.h"
 #include "backends/vulkanbackend/VkIndexBuffer.h"
 #include "backends/vulkanbackend/VulkanUniformBuffer.h"
+#include "backends/vulkanbackend/VulkanShaderStorageBuffer.h"
 #include "backends/vulkanbackend/VulkanDevice.h"
 
 #include "backends/GraphicsContext.h"
@@ -59,4 +60,21 @@ std::shared_ptr<Axel::UniformBuffer> Axel::UniformBuffer::Create(GraphicsContext
     AXEL_CORE_ASSERT(false, "Unknown RendererAPI!");
     return nullptr;
 
+}
+
+std::shared_ptr<Axel::ShaderStorageBuffer> Axel::ShaderStorageBuffer::Create(GraphicsContext* ctxt, uint32_t size, uint32_t binding)
+{
+    switch (ctxt->GetCurrentAPI())
+    {
+    case RenderAPI::API::None:
+        AXEL_CORE_ASSERT(false, "RendererAPI::None is not supported!");
+        return nullptr;
+
+    case RenderAPI::API::Vulkan:
+        // We pass the active VulkanDevice to the constructor
+        return std::make_shared<VulkanShaderStorageBuffer>(ctxt, size, binding);
+    }
+
+    AXEL_CORE_ASSERT(false, "Unknown RendererAPI!");
+    return nullptr;
 }

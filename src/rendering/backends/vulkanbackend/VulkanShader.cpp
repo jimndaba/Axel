@@ -96,6 +96,16 @@ void Axel::VulkanShader::Reflect(const std::vector<uint32_t>& spirvCode, ShaderS
             if (resource.Type == ShaderResourceType::UniformBuffer)
                 resource.Size = binding->block.size;
 
+            // In your reflection logic
+            if (resource.Type == ShaderResourceType::StorageBuffer && binding->block.size == 0) {
+                // 0 indicates a runtime array []. 
+                // We must use the full buffer size during the actual Write/Update call.
+                resource.Size = VK_WHOLE_SIZE;
+            }
+            else {
+                resource.Size = binding->block.size;
+            }
+
             // Store in a map: m_Resources[set_index][binding_index]
             if (m_Resources[resource.Set].find(resource.Binding) != m_Resources[resource.Set].end()) {
                 m_Resources[resource.Set][resource.Binding].Stage |= stage;

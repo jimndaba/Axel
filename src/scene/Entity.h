@@ -2,31 +2,56 @@
 #ifndef ENTITY_H
 #define ENTITY_H
 
-#include "Scene.h"
+#include <entt/entt.hpp>
+#include <tuple>
+
 
 namespace Axel {
-    class Entity {
+
+    class Scene;
+
+    // -------------------------
+    // EntityView
+    // -------------------------
+
+    template<typename... Components>
+    class EntityView
+    {
     public:
-        Entity(entt::entity handle, Scene* scene)
-            : m_Handle(handle), m_Scene(scene) {}
+        using ViewType = entt::view<entt::get_t<Components...>>;
 
-        // Simple enough to copy and pass around the DLL
-        bool operator==(const Entity& other) const { return m_Handle == other.m_Handle && m_Scene == other.m_Scene; }
+        EntityView(entt::registry& registry, Scene* scene);
 
-        template<typename T>
-        T& GetComponent() { return m_Scene->m_Registry.get<T>(m_Handle); }
+        struct Iterator
+        {
+            // Instead of using ViewType::iterator here, 
+            // we use a pointer or the underlying entt type directly 
+            // to avoid the pack expansion in the alias.
+            using EntityIterator = typename ViewType::iterator;
 
-        template<typename T>
-        bool HasComponent() { return m_Scene->m_Registry.all_of<T>(m_Handle); }
+            Iterator(EntityIterator it, Scene* scene);
 
-        // Conversion to bool to check if entity is valid
-        operator bool() const { return m_Handle != entt::null && m_Scene != nullptr; }
+            Iterator& operator++();
+            bool operator!=(const Iterator& other) const;
+
+            // Return 'auto' so the tuple expansion happens in the .inl
+            auto operator*() const;
+
+        private:
+            EntityIterator m_It;
+            Scene* m_Scene;
+        };
+
+        Iterator begin();
+        Iterator end();
 
     private:
-        entt::entity m_Handle{ entt::null };
-        Scene* m_Scene = nullptr;
+        // EnTT 3.10+ uses get_t for views with multiple components
+        entt::view<entt::get_t<Components...>> m_View;
+        Scene* m_Scene;
     };
-}
+
+} // namespace Axel
 
 
 #endif

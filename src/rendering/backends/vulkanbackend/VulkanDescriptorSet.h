@@ -20,6 +20,7 @@ namespace Axel
 
 		virtual void Write(const std::string& name, const Ref<UniformBuffer>& buffer) override;
 		virtual void Write(const std::string& name, const Ref<Texture2D>& texture) override;
+		virtual void Write(const std::string& name, const Ref<ShaderStorageBuffer>& buffer) override;
 		virtual void Update() override;
 		virtual void Destroy() override;	
 

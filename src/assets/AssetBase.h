@@ -9,7 +9,7 @@ namespace Axel
 {
     enum class AssetTypeOptions { None = 0, Texture2D, Mesh, Shader, Material, Scene };
 
-    class AX_API  Asset {
+    class AX_API  IAsset {
     public:
         UUID AssetID; // The unique ID for this instance
         virtual AssetTypeOptions GetType() const = 0;

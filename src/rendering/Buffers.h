@@ -42,5 +42,15 @@ namespace Axel
 		virtual void Destroy(GraphicsContext* context) = 0;
 		static Ref<UniformBuffer> Create(GraphicsContext* ctxt, uint32_t size, uint32_t binding);
 	};
+
+	class AX_API ShaderStorageBuffer {
+	public:
+		virtual ~ShaderStorageBuffer() = default;
+		virtual void SetData(const void* data, uint32_t size, uint32_t offset = 0) = 0;
+		virtual void Destroy(GraphicsContext* context) = 0;
+		virtual void Bind(GraphicsContext& ctxt, uint32_t binding) = 0;
+		static Ref<ShaderStorageBuffer> Create(GraphicsContext* ctxt, uint32_t size, uint32_t binding);
+		virtual uint32_t GetSize() = 0;
+	};
 }
 #endif // !VERTEXBUFFER_H

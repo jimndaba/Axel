@@ -5,6 +5,7 @@
 #include "core/Core.h"
 #include "math/Math.h"
 #include <vector>
+#include <core/UUID.h>
 
 
 
@@ -25,6 +26,14 @@ namespace Axel
         uint32_t InstanceCount = 1;
         // For skinned meshes
         std::vector<Mat4> BoneMatrices;     
+    };
+
+    struct SpriteRenderPacket {
+        Mat4 Transform;
+        Vec4 Color;
+        uint32_t TextureHandle;
+        uint32_t padding[3];
+        // float EntityID; // Useful for mouse picking later
     };
 }
 

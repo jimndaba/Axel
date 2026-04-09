@@ -94,6 +94,34 @@ void Axel::YAMLArchive::Property(const char* name, UUID& value)
 	}
 }
 
+void Axel::YAMLArchive::Property(const char* name, std::vector<UUID>& container)
+{
+	if (m_Mode == ArchiveModeOptions::Save)
+	{
+		m_Data->Emitter << YAML::Key << name;
+		m_Data->Emitter << YAML::BeginSeq;
+		for (const auto& id : container)
+		{
+			// Cast UUID to uint64_t for the emitter
+			m_Data->Emitter << (uint64_t)id;
+		}
+		m_Data->Emitter << YAML::EndSeq;
+	}
+	else // ArchiveModeOptions::Load
+	{
+		auto& node = m_Data->NodeStack.top();
+		if (node[name] && node[name].IsSequence())
+		{
+			container.clear();
+			for (auto item : node[name])
+			{
+				// Extract as uint64_t and convert back to UUID
+				container.emplace_back(item.as<uint64_t>());
+			}
+		}
+	}
+}
+
 void Axel::YAMLArchive::Property(const char* name, Vec3& value)
 {
 	if (BeginStruct(name)) {
@@ -144,6 +172,21 @@ void Axel::YAMLArchive::Property(const char* name, const Vec3& value)
 		m_Data->Emitter << YAML::Key << "y" << YAML::Value << value.y;
 		m_Data->Emitter << YAML::Key << "z" << YAML::Value << value.z;
 		m_Data->Emitter << YAML::EndMap;
+	}
+}
+
+void Axel::YAMLArchive::Property(const char* name, const std::vector<UUID>& container)
+{
+	if (m_Mode == ArchiveModeOptions::Save)
+	{
+		m_Data->Emitter << YAML::Key << name;
+		m_Data->Emitter << YAML::BeginSeq;
+		for (const auto& id : container)
+		{
+			// Cast UUID to uint64_t for the emitter
+			m_Data->Emitter << (uint64_t)id;
+		}
+		m_Data->Emitter << YAML::EndSeq;
 	}
 }
 #pragma endregion

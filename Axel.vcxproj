@@ -129,6 +129,7 @@
     <ClInclude Include="src\rendering\backends\vulkanbackend\VulkanRenderAPI.h" />
     <ClInclude Include="src\rendering\backends\vulkanbackend\VulkanRenderPass.h" />
     <ClInclude Include="src\rendering\backends\vulkanbackend\VulkanShader.h" />
+    <ClInclude Include="src\rendering\backends\vulkanbackend\VulkanShaderStorageBuffer.h" />
     <ClInclude Include="src\rendering\backends\vulkanbackend\VulkanSwapchain.h" />
     <ClInclude Include="src\rendering\backends\vulkanbackend\VulkanPipeline.h" />
     <ClInclude Include="src\rendering\backends\vulkanbackend\VulkanTexture2D.h" />
@@ -152,6 +153,7 @@
     <ClInclude Include="src\rendering\Texture.h" />
     <ClInclude Include="src\scene\Components.h" />
     <ClInclude Include="src\scene\Entity.h" />
+    <ClInclude Include="src\scene\Prefab.h" />
     <ClInclude Include="src\scene\Scene.h" />
   </ItemGroup>
   <ItemGroup>
@@ -186,12 +188,14 @@
     <ClCompile Include="src\rendering\backends\vulkanbackend\VulkanRenderAPI.cpp" />
     <ClCompile Include="src\rendering\backends\vulkanbackend\VulkanRenderPass.cpp" />
     <ClCompile Include="src\rendering\backends\vulkanbackend\VulkanShader.cpp" />
+    <ClCompile Include="src\rendering\backends\vulkanbackend\VulkanShaderStorageBuffer.cpp" />
     <ClCompile Include="src\rendering\backends\vulkanbackend\VulkanSwapchain.cpp" />
     <ClCompile Include="src\rendering\backends\vulkanbackend\VulkanPipeline.cpp" />
     <ClCompile Include="src\rendering\backends\vulkanbackend\VulkanTexture2D.cpp" />
     <ClCompile Include="src\rendering\backends\vulkanbackend\VulkanUniformBuffer.cpp" />
     <ClCompile Include="src\rendering\Buffers.cpp" />
     <ClCompile Include="src\rendering\DescriptorSet.cpp" />
+    <ClCompile Include="src\rendering\Material.cpp" />
     <ClCompile Include="src\rendering\Mesh.cpp" />
     <ClCompile Include="src\rendering\Pipeline.cpp" />
     <ClCompile Include="src\rendering\RenderAPI.cpp" />
@@ -201,10 +205,14 @@
     <ClCompile Include="src\rendering\backends\RenderPass.cpp" />
     <ClCompile Include="src\rendering\Shader.cpp" />
     <ClCompile Include="src\rendering\Texture.cpp" />
+    <ClCompile Include="src\scene\Entity.cpp" />
     <ClCompile Include="src\scene\Scene.cpp" />
     <ClCompile Include="vendors\spirv_refl\spirv_reflect.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="src\scene\Entity.inl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

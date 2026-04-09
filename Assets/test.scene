@@ -1,0 +1,108 @@
+Scene:
+  Name: Untitled
+  AssetID: 6169120887048651911
+  RootEntity: 16137741306818636258
+  ActiveCamera: 794132169307921091
+  Entity:
+    ID: 11843007307363157857
+    Component:
+      Type: 351284227
+      Name: Entity
+    Component:
+      Type: 3603171463
+      Position:
+        x: 1
+        y: 2
+        z: 0
+      Rotation:
+        x: 0
+        y: 0
+        z: 0
+      Scale:
+        x: 1
+        y: 1
+        z: 1
+    Component:
+      Type: 1446886352
+      Texture: 18138793523821429092
+      Color:
+        x: 1
+        y: 1
+        z: 1
+  Entity:
+    ID: 2354341448707784425
+    Component:
+      Type: 351284227
+      Name: Main Camera
+    Component:
+      Type: 3603171463
+      Position:
+        x: 0
+        y: 0
+        z: 0
+      Rotation:
+        x: 0
+        y: 0
+        z: 0
+      Scale:
+        x: 1
+        y: 1
+        z: 1
+    Component:
+      Type: 1737683542
+      ProjectionType: 1
+      FOV: 45
+      OrthoSize: 10
+      Primary: true
+  Entity:
+    ID: 6181168080823311194
+    Component:
+      Type: 351284227
+      Name: Entity
+    Component:
+      Type: 3603171463
+      Position:
+        x: -4
+        y: -1
+        z: 0
+      Rotation:
+        x: 0
+        y: 0
+        z: 0
+      Scale:
+        x: 1
+        y: 1
+        z: 1
+    Component:
+      Type: 1446886352
+      Texture: 1591139329101611789
+      Color:
+        x: 1
+        y: 1
+        z: 1
+  Entity:
+    ID: 12865442808405346844
+    Component:
+      Type: 351284227
+      Name: Entity
+    Component:
+      Type: 3603171463
+      Position:
+        x: 0
+        y: 0
+        z: 0
+      Rotation:
+        x: 0
+        y: 0
+        z: 0
+      Scale:
+        x: 1
+        y: 1
+        z: 1
+    Component:
+      Type: 1446886352
+      Texture: 6480269274407006648
+      Color:
+        x: 1
+        y: 1
+        z: 1

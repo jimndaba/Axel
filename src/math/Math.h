@@ -22,13 +22,15 @@ namespace Axel
     using Mat4 = glm::mat4;
     using Quat = glm::quat;
 
-    namespace MATRIX
+    namespace Math
     {
-        inline Axel::Mat4 ORTHO(float left, float right, float bottom, float top, float nr, float fr)
-        {
-            return glm::ortho(left, right, bottom, top, nr, fr);
-        }
-
+        inline Axel::Mat4 Ortho(float left, float right, float bottom, float top, float nr, float fr){return glm::ortho(left, right, bottom, top, nr, fr);}
+        inline Axel::Mat4 Perspective(float fovRad, float aspect, float znear, float zfar){return glm::perspective(fovRad, aspect, znear, zfar);}
+        inline float Radians(float degrees){return glm::radians(degrees);}
+        inline Axel::Mat4 Inverse(const Axel::Mat4& matrix) {return glm::inverse(matrix);}
+        inline Axel::Mat4 Translate(const Axel::Mat4& m, const Vec3& v) { return glm::translate(m, v); }
+        inline Axel::Mat4 Rotate(const Axel::Mat4& m, float angleRad, const Vec3& axis) { return glm::rotate(m, angleRad, axis); }
+        inline Axel::Mat4 Scale(const Axel::Mat4& m, const Vec3& v) { return glm::scale(m, v); }
     }
 }
 

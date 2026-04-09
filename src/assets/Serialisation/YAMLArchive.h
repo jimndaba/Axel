@@ -21,6 +21,7 @@ namespace Axel
 		virtual void Property(const char* name, std::string& value) override;
 		virtual void Property(const char* name, uint64_t& value) override;
 		virtual void Property(const char* name, UUID& value) override;
+		virtual void Property(const char* name, std::vector<UUID>& container) override;
 
 		//Const versions for primitives (for read-only properties)
 		virtual void Property(const char* name, const float& value) override;
@@ -29,7 +30,7 @@ namespace Axel
 		virtual void Property(const char* name, const std::string& value) override;
 		virtual void Property(const char* name, const uint64_t& value) override;
 		virtual void Property(const char* name, const UUID& value) override;
-
+		virtual void Property(const char* name, const std::vector<UUID>& container) override;
 		
 		// Complex Axel types (Agnostic)
 		virtual void Property(const char* name, Vec3& value) override;

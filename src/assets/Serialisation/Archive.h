@@ -22,6 +22,7 @@ namespace Axel
         virtual void Property(const char* name, std::string& value) = 0;
         virtual void Property(const char* name, uint64_t& value) = 0;
         virtual void Property(const char* name, UUID& value) = 0;
+        virtual void Property(const char* name, std::vector<UUID>& container) = 0;
 
 		//Const versions for primitives (for read-only properties)
 		virtual void Property(const char* name, const float& value) = 0;
@@ -30,6 +31,8 @@ namespace Axel
         virtual void Property(const char* name, const std::string& value) = 0;
         virtual void Property(const char* name, const uint64_t& value) = 0;
         virtual void Property(const char* name, const UUID& value) = 0;
+        virtual void Property(const char* name, const std::vector<UUID>& container) =0;
+        // 
 
 
 

@@ -11,7 +11,7 @@ namespace Axel
 {
    
 		
-    class UUID {
+    class AX_API UUID {
     public:
         UUID();
         UUID(uint64_t uuid);
@@ -21,7 +21,7 @@ namespace Axel
         std::string ToString() const;
 
     private:
-        uint64_t m_UUID;
+        uint64_t m_UUID = 0;
     };
 
 

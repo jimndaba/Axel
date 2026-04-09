@@ -18,24 +18,52 @@ namespace Axel
     class CameraComponent;
     class Texture2D;
     class Pipeline;
+    class Shader;
+    struct TransformComponent;
+    struct SpriteComponent;
+    struct IDComponent;
+    struct TagComponent;
+    struct MeshComponent;
+    class VertexBuffer;
+    class IndexBuffer;
+    class ShaderStorageBuffer;
+    class UniformBuffer;
+    class Scene;
+
+    struct SceneCamera {
+        Mat4 ViewProjection;
+        // You might add Exposure, Near/Far planes, etc. later
+    };
 
     struct AX_API RendererData {
         // The View/Projection data for the current frame
-        Mat4 ViewProjection;
-        Vec3 CameraPosition;
-
         // The "Buckets" for sorting and drawing
         std::vector<RenderPacket> MeshPackets;
+        std::vector<SpriteRenderPacket> SpritePackets;
         std::vector<RenderPacket> UIPackets;
         std::vector<RenderPacket> ParticlePackets;
 
         // Statistics (Optional but helpful for id Tech-style debugging)
         uint32_t DrawCalls = 0;
         uint32_t IndexCount = 0;
+        uint32_t MaxSprites = 10000;
 
-        GraphicsContext* Context;
+        SceneCamera CameraData = SceneCamera();
+        GraphicsContext* Context = nullptr;
         Ref<RenderCommandBuffer> ActiveCommandBuffer;
+
+        Ref<VertexBuffer> QuadVertexBuffer;
+        Ref<IndexBuffer> QuadIndexBuffer;
+        Ref<Pipeline> QuadPipeline;
+        Ref<Shader> QuadShader;
+        Ref<Axel::Texture2D> m_texture;
+
+        Ref<ShaderStorageBuffer> SpriteSSBO;
+        Ref<UniformBuffer> CameraUBO;
+        Ref<DescriptorSet> MainDescriptorSet;
     };
+
+   
 
 	class AX_API Renderer
 	{
@@ -51,8 +79,11 @@ namespace Axel
         void EndRenderPass(Ref<RenderPass> renderPass);
 
         // Scene Scope
-        static void BeginScene(const CameraComponent& camera, const Mat4& transform);
+        static void BeginScene(Scene* current_scene);
         static void EndScene();
+        static void Flush();
+
+        static void BindBuffers();
 
         // High-level Submissions (The "What")
         static void Submit(const Ref<RenderCommandBuffer>& commandBuffer);
@@ -60,6 +91,7 @@ namespace Axel
         static void SubmitParticle(const Particle& particle);
         static void SubmitUI(Ref<UIElement> element);
         static void SubmitInstanced(Ref<Mesh> mesh, Ref<Material> material, const std::vector<glm::mat4>& transforms);
+        static void SubmitSprite(Mat4& transform, Vec4 colour, UUID TextureHandle);
 
         static Ref<DescriptorSet>& ProvideTextureDescriptor(const Ref<Texture2D>& texture,Ref<Pipeline>& pipeline, uint32_t index);
         static void RealeaseTextureDescriptor(const Ref<Texture2D>& texture,Ref<Pipeline>& pipeline);
@@ -67,6 +99,7 @@ namespace Axel
         static void BindTextureDescriptorSet(uint32_t setIndex, Ref<Texture2D>& texture,Ref<Pipeline>& pipeline);
 
         static void DrawIndexed(uint32_t indexCount);
+        static void DrawIndexedInstanced(uint32_t indexCount, uint32_t instanceCount);
         static void DrawQuad(Mat4 transsform,Ref<Texture2D> texture);
         
         static Ref<RenderCommandBuffer> GetActiveCommandBuffer() { return s_Data->ActiveCommandBuffer; }
@@ -76,6 +109,7 @@ namespace Axel
 
     private:        
         static Scope<RendererData> s_Data;
+        static Scope<SceneCamera> s_SceneCamera;
 		static Ref<Texture2D> s_WhiteTexture; // A default white texture for materials that don't have one
 	};
 
