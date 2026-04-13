@@ -37,6 +37,9 @@ namespace Axel
     };
 
     struct MaterialTemplate : public ISerialisable, public IAsset {
+
+        MaterialTemplate(UUID shader);
+
         // 1. Identification
         UUID ID;
         std::string Name;
@@ -56,11 +59,13 @@ namespace Axel
         Ref<Pipeline> GetPipeline() const { return m_Pipeline; }
 
         virtual AssetTypeOptions GetType() const override { return AssetTypeOptions::MaterialTemplate; }
-        
+        virtual void Serialize(IArchive& ar) override;
+
+        // Inside MaterialTemplate.h/cpp
+        uint32_t CalculateBufferSize();
     private:
         Ref<Pipeline> m_Pipeline; // Hardware-specific object
-        std::vector<PropertyDescriptor> m_Descriptors;
-        virtual void Serialize(IArchive& ar) override;
+        std::vector<PropertyDescriptor> m_Descriptors;       
     };
 
 }

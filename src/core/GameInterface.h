@@ -13,6 +13,7 @@ namespace Axel
         class GraphicsContext* Graphics;
         class GraphicsDevice* Device;
 		class Renderer* Renderer;
+        class MaterialManager* MatManager;
         // Add other core systems here
         // Add other core systems here
     };

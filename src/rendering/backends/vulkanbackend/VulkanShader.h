@@ -25,6 +25,7 @@ namespace Axel
 		virtual void Destroy() override;
 		const std::vector<VkPipelineShaderStageCreateInfo>& GetVulkanStages() const { return m_StageInfos; }
 		void Reflect(const std::vector<uint32_t>& spirvCode, ShaderStage stage);
+		void ReflectVertexLayout(const std::vector<uint32_t>& code);
 	private:
 		void CreateModule(ShaderStage stage, const std::vector<uint32_t>& code);
 

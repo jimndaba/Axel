@@ -14,6 +14,7 @@ namespace Axel
     class GraphicsContext;
     class Renderer;
     class AssetManager;
+    class MaterialManager;
 
     class Application {
     public:
@@ -26,6 +27,8 @@ namespace Axel
         void Quit();
         void Shutdown();
 
+        void UpdateMaterials();
+
         // Getters for global access (optional, or use Service Locator)
         static Application& Get() { return *s_Instance; }
         AxPlatform& GetPlatform() { return *m_Platform; }
@@ -34,9 +37,9 @@ namespace Axel
 
     protected:
         // Overridable by the specific game (e.g., MyGame : public Application)
-        virtual void OnStart() {}
-        virtual void OnUpdate(float deltaTime) {}
-        virtual void OnShutdown() {}
+        virtual void OnStart();
+        virtual void OnUpdate(float deltaTime);
+        virtual void OnShutdown();
 
     private:
         bool m_Running = true;
@@ -46,6 +49,7 @@ namespace Axel
         std::unique_ptr<Eventbus>   m_EventBus;
         std::unique_ptr<AxPlatform>   m_Platform;
         std::unique_ptr<AssetManager>   m_AssetaManager;
+        std::unique_ptr<MaterialManager>   m_MaterialManager;
 
         std::unique_ptr<GraphicsContext> mContext;
         std::unique_ptr<Renderer> mRenderer;

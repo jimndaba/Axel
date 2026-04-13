@@ -13,9 +13,11 @@ namespace Axel
         ShaderDataType Type = ShaderDataType::None;
         uint32_t Size = 0;
         uint32_t Offset = 0;
+        uint32_t Location = 0;
 
-        BufferElement(ShaderDataType type, const std::string& name)
-            : Name(name), Type(type), Size(ShaderDataTypeSize(type)), Offset(0) {}
+        BufferElement(ShaderDataType type, const std::string& name, uint32_t location = 0)
+            : Name(name), Type(type), Size(ShaderDataTypeSize(type)), Offset(0), Location(location) {
+        }
 
         static uint32_t ShaderDataTypeSize(ShaderDataType type) {
             switch (type) {
@@ -43,6 +45,11 @@ namespace Axel
     public:
         // Add this line!
         BufferLayout() = default;
+        BufferLayout(std::vector<BufferElement> elements) :
+            m_Elements(elements){
+            CalculateOffsetsAndStride();
+        }
+
 
         BufferLayout(const std::initializer_list<BufferElement>& elements)
             : m_Elements(elements) {

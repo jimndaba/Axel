@@ -4,6 +4,7 @@
 
 #include "core/Core.h"
 #include "math/Math.h"
+#include "GraphicsCore.h"
 
 namespace Axel
 {
@@ -34,6 +35,14 @@ namespace Axel
 
         virtual void DrawQuad(const Mat4& transform, const Ref<Texture2D>& texture) = 0;
         virtual void DrawIndexed(uint32_t indexCount, uint32_t instanceCount = 1) = 0;
+
+        virtual void PushConstants(
+            Ref<Pipeline> pipeline,
+            ShaderStage stages, // e.g. Vertex | Fragment
+            const void* data,
+            uint32_t size,
+            uint32_t offset = 0
+        ) = 0;
 
         enum class API {
             None = 0,

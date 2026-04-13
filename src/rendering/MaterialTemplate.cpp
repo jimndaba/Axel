@@ -6,13 +6,18 @@
 #include "backends/GraphicsContext.h"
 #include "Shader.h"
 
+Axel::MaterialTemplate::MaterialTemplate(UUID shader):
+    ShaderID(shader)
+{
+}
+
 void Axel::MaterialTemplate::BuildPipeline(GraphicsContext* context)
 {
     // 1. Get Shader and Reflect
     auto shader = AssetManager::GetAsset<Shader>(ShaderID);
     auto allresources = shader->GetResources();
 
-    const uint32_t MaterialSetIndex = 2;
+    const uint32_t MaterialSetIndex = 1;
 
     if (allresources.find(MaterialSetIndex) != allresources.end()) {
         auto& bindings = allresources.at(MaterialSetIndex);
@@ -41,6 +46,8 @@ void Axel::MaterialTemplate::BuildPipeline(GraphicsContext* context)
     spec.BlendMode = BlendMode;
     spec.DepthTest = DepthTest;
     spec.DepthWrite = DepthWrite;
+    spec.TargetRenderPass = context->GetMainRenderPass();
+    spec.Layout = shader->m_VertexLayout;
 
     // 3. Bake the Hardware Truth
     m_Pipeline = Pipeline::Create(context,spec);
@@ -67,3 +74,20 @@ void Axel::MaterialTemplate::Serialize(IArchive& ar)
 
     ar.EndStruct();
 }
+
+uint32_t Axel::MaterialTemplate::CalculateBufferSize()
+{
+    if (m_Descriptors.empty()) return 0;
+
+    // 1. Find the end of the last element
+    const auto& lastDesc = m_Descriptors.back();
+    uint32_t rawSize = lastDesc.Offset + lastDesc.Size;
+
+    // 2. std430 Alignment: Round up to the nearest 16 bytes
+    // This ensures that an array of these structs in an SSBO stays aligned.
+    uint32_t alignment = 16;
+    uint32_t paddedSize = (rawSize + (alignment - 1)) & ~(alignment - 1);
+
+    return paddedSize;
+}
+

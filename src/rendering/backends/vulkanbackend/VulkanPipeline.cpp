@@ -15,8 +15,15 @@ Axel::VulkanPipeline::VulkanPipeline(const PipelineSpecification& spec, VulkanDe
 
     // Inside VulkanPipeline.cpp
     const auto& resources = vShader->GetResources();
+
+    // 1. Find the highest set index to determine array size
+    uint32_t maxSet = 0;
+    for (auto const& [setIndex, bindings] : resources) {
+        maxSet = std::max(maxSet, setIndex);
+    }
+
     // We need one Layout for each Set (Set 0, Set 1, etc.)
-    std::vector<VkDescriptorSetLayout> layouts;
+    std::vector<VkDescriptorSetLayout> layouts(maxSet + 1);
     for (auto& [setIndex, bindingsMap] : resources) {
         std::vector<VkDescriptorSetLayoutBinding> vkBindings;
 
@@ -27,7 +34,6 @@ Axel::VulkanPipeline::VulkanPipeline(const PipelineSpecification& spec, VulkanDe
             b.descriptorCount = resource.Count;
             b.stageFlags = AxelStageToVulkan(resource.Stage);
             b.pImmutableSamplers = nullptr;
-
             vkBindings.push_back(b);
         }
 
@@ -37,14 +43,30 @@ Axel::VulkanPipeline::VulkanPipeline(const PipelineSpecification& spec, VulkanDe
         layoutInfo.pBindings = vkBindings.data();
 
         VkDescriptorSetLayout layout;
-        vkCreateDescriptorSetLayout(logicalDevice, &layoutInfo, nullptr, &layout);
+        if (vkCreateDescriptorSetLayout(logicalDevice, &layoutInfo, nullptr, &layout) != VK_SUCCESS) {
+            // Handle error (Logging, etc)
+        }
 
-        layouts.push_back(layout);
-        m_DescriptorSetLayouts[setIndex] = layout; // Store for later
+        // CRITICAL: Assign to the specific index, do NOT push_back
+        layouts[setIndex] = layout;
+
+        // Store in your member map for binding calls later
+        m_DescriptorSetLayouts[setIndex] = layout;
     }
+
+    /*
+    for (uint32_t i = 0; i < layouts.size(); ++i) {
+        if (layouts[i] == VK_NULL_HANDLE) {
+            // You should have a single "EmptyLayout" created at engine init 
+            // to plug holes in the descriptor sets.
+            layouts[i] = m_Device.GetEmptyDescriptorSetLayout();
+        }
+    }
+    */
 
     // Collect all layouts from the map into a sorted vector
     std::vector<VkDescriptorSetLayout> allLayouts;
+
     for (auto const& [setIndex, layout] : m_DescriptorSetLayouts) {
         allLayouts.push_back(layout);
     }
@@ -56,12 +78,17 @@ Axel::VulkanPipeline::VulkanPipeline(const PipelineSpecification& spec, VulkanDe
 
     // --- 3. Pipeline Layout (Uniforms/Push Constants) ---
     // For now, we create an empty layout. Later, this comes from the Shader Reflection.
-    VkPushConstantRange pushConstantRange{};
-    pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-    pushConstantRange.offset = 0;
-    pushConstantRange.size = sizeof(glm::mat4);
-    pipelineLayoutInfo.pushConstantRangeCount = 1;
-    pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
+    std::vector<VkPushConstantRange> vkRanges;
+    for (const auto& range : vShader->GetPushConstantRanges()) {
+        VkPushConstantRange vkRange;
+        vkRange.stageFlags = AxelStageToVulkan(range.Stages);
+        vkRange.offset = range.Offset;
+        vkRange.size = range.Size;
+        vkRanges.push_back(vkRange);
+    } 
+    pipelineLayoutInfo.pushConstantRangeCount = (uint32_t)vkRanges.size();
+    pipelineLayoutInfo.pPushConstantRanges = vkRanges.data();
+
     if (vkCreatePipelineLayout(logicalDevice, &pipelineLayoutInfo, nullptr, &m_Layout) != VK_SUCCESS) {
         AXEL_CORE_ASSERT(false, "Failed to create pipeline layout!");
     }
@@ -99,12 +126,7 @@ Axel::VulkanPipeline::VulkanPipeline(const PipelineSpecification& spec, VulkanDe
     rasterizer.cullMode = AxelCullModeToVulkan(spec.FaceCulling);
     rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE; // Standard for Axel
     rasterizer.lineWidth = 1.0f;
-
-    
-  
-
-    
-
+     
 
     // --- 4. The Final Pipeline ---
     VkGraphicsPipelineCreateInfo pipelineInfo{};

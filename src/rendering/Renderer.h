@@ -28,6 +28,9 @@ namespace Axel
     class IndexBuffer;
     class ShaderStorageBuffer;
     class UniformBuffer;
+    struct MaterialTemplate;
+    class MaterialManager;
+
     class Scene;
 
     struct SceneCamera {
@@ -42,6 +45,7 @@ namespace Axel
         std::vector<SpriteRenderPacket> SpritePackets;
         std::vector<RenderPacket> UIPackets;
         std::vector<RenderPacket> ParticlePackets;
+        std::shared_ptr<MaterialTemplate> m_matTemplate;
 
         // Statistics (Optional but helpful for id Tech-style debugging)
         uint32_t DrawCalls = 0;
@@ -50,11 +54,11 @@ namespace Axel
 
         SceneCamera CameraData = SceneCamera();
         GraphicsContext* Context = nullptr;
+        MaterialManager* m_MaterialManager = nullptr;
         Ref<RenderCommandBuffer> ActiveCommandBuffer;
 
         Ref<VertexBuffer> QuadVertexBuffer;
         Ref<IndexBuffer> QuadIndexBuffer;
-        Ref<Pipeline> QuadPipeline;
         Ref<Shader> QuadShader;
         Ref<Axel::Texture2D> m_texture;
 
@@ -69,7 +73,7 @@ namespace Axel
 	{
     public:
         // Lifecycle
-        static void Init(GraphicsContext* context);
+        static void Init(GraphicsContext* context, MaterialManager* mat_manager);
         static void Shutdown();
 
         static void BeginFrame();
@@ -106,6 +110,8 @@ namespace Axel
 
 		static RenderAPI::API GetCurrentAPI() { return s_Data->Context->GetCurrentAPI(); }
         static GraphicsContext* GetGraphicsContext() { return s_Data->Context; }
+
+        static RendererData* GetRenderData () { return s_Data.get(); }
 
     private:        
         static Scope<RendererData> s_Data;

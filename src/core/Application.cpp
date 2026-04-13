@@ -4,6 +4,7 @@
 
 #include "rendering/backends/GraphicsContext.h"
 #include "rendering/Renderer.h"
+#include <rendering/MaterialManager.h>
 
 Axel::Application::Application()
 {
@@ -69,6 +70,11 @@ void Axel::Application::Shutdown()
 	mContext->Shutdown();
 }
 
+void Axel::Application::UpdateMaterials()
+{
+	m_MaterialManager->Update();
+}
+
 void Axel::Application::LoadGameDLL(const std::string& path)
 {
 	m_GameLib = m_Platform->LoadSharedLibrary(path.c_str());
@@ -84,10 +90,25 @@ void Axel::Application::LoadGameDLL(const std::string& path)
 			m_GameContext->Device = mContext->GetDevice().get();
 			m_GameContext->Graphics = mContext.get();
 			m_GameContext->Renderer = mRenderer.get();
+			m_GameContext->MatManager = m_MaterialManager.get();
 			m_ActiveGame->OnLoad(m_GameContext);
 		}
 	}
 
+}
+
+void Axel::Application::OnStart()
+{
+	
+}
+
+void Axel::Application::OnUpdate(float deltaTime)
+{
+
+}
+
+void Axel::Application::OnShutdown()
+{
 }
 
 void Axel::Application::Init()
@@ -97,7 +118,9 @@ void Axel::Application::Init()
 	mContext = GraphicsContext::Create(m_Platform->GetNativeWindow());
 	mContext->Init();
 
-	m_AssetaManager = std::make_unique<AssetManager>(mContext->GetDevice().get());
+	m_AssetaManager = std::make_unique<AssetManager>(mContext->GetDevice().get());	
+
+	m_MaterialManager = std::make_unique<MaterialManager>(mContext.get());
 
 	Axel::AssetMetadata SpriteMeta{};
 	SpriteMeta.Name = "SpriteShader";
@@ -105,6 +128,5 @@ void Axel::Application::Init()
 	SpriteMeta.Path = "Assets/Shaders/Quad";
 	Axel::AssetManager::RegisterAsset(SpriteMeta);
 
-
-	Renderer::Init(mContext.get());
+	Renderer::Init(mContext.get(), m_MaterialManager.get());
 }

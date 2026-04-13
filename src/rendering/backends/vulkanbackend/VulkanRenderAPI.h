@@ -35,6 +35,12 @@ namespace Axel
         virtual void SubmitCommandBuffer(Ref<RenderCommandBuffer> commandBuffer) override;
 		virtual void BindDescriptorSet(uint32_t setIndex, const Ref<DescriptorSet>& set, const Ref<Pipeline>& pipeline) override;
         virtual void BindTextureDescriptorSet(uint32_t setIndex, Ref<Texture2D>& texture,Ref<Pipeline>& pipeline) override;
+        virtual void PushConstants(Ref<Pipeline> pipeline,
+            ShaderStage stages, // e.g. Vertex | Fragment
+            const void* data,
+            uint32_t size,
+            uint32_t offset = 0
+        ) override;
 
     protected:
 		virtual GraphicsContext* GetContext() override { return (GraphicsContext*)m_Context; }

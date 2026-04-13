@@ -25,6 +25,18 @@ Axel::ShaderResourceType MapType(SpvReflectDescriptorType type) {
     }
 }
 
+Axel::ShaderDataType SpirvToAxelType(SpvReflectFormat format) {
+    switch (format) {
+    case SPV_REFLECT_FORMAT_R32_SFLOAT:          return Axel::ShaderDataType::Float;
+    case SPV_REFLECT_FORMAT_R32G32_SFLOAT:       return Axel::ShaderDataType::Float2;
+    case SPV_REFLECT_FORMAT_R32G32B32_SFLOAT:    return Axel::ShaderDataType::Float3;
+    case SPV_REFLECT_FORMAT_R32G32B32A32_SFLOAT: return Axel::ShaderDataType::Float4;
+    case SPV_REFLECT_FORMAT_R32_SINT:            return Axel::ShaderDataType::Int;
+        // ... add others ...
+    default: return Axel::ShaderDataType::None;
+    }
+}
+
 Axel::PropertyType MapMemberType(const SpvReflectBlockVariable& var) {
     // Safety check for the pointer
     if (!var.type_description) return Axel::PropertyType::Unknown;
@@ -51,6 +63,11 @@ Axel::VulkanShader::VulkanShader(GraphicsDevice& device, const std::map<ShaderSt
     for (auto& [stage, path] : shaderFiles) {
         auto code = ReadSPIRVFile(path);
 
+        // Only reflect Vertex Layout for the Vertex Stage
+        // This prevents the Fragment stage from overwriting your attributes
+        if (stage == ShaderStage::Vertex) {
+            ReflectVertexLayout(code); // Dedicated function for inputs
+        }
 
 		Reflect(code, stage);
 
@@ -97,7 +114,7 @@ void Axel::VulkanShader::Reflect(const std::vector<uint32_t>& spirvCode, ShaderS
     spvReflectEnumerateDescriptorSets(&module, &count, nullptr);
     std::vector<SpvReflectDescriptorSet*> sets(count);
     spvReflectEnumerateDescriptorSets(&module, &count, sets.data());
-
+    
     // 2. Loop through every set and binding found in the SPV
     for (auto* set : sets) {
         for (uint32_t i = 0; i < set->binding_count; ++i) {
@@ -156,6 +173,50 @@ void Axel::VulkanShader::Reflect(const std::vector<uint32_t>& spirvCode, ShaderS
         }
     }
 
+    uint32_t pushConstantBlockCount = 0;
+    spvReflectEnumeratePushConstantBlocks(&module, &pushConstantBlockCount, nullptr);
+
+    if (pushConstantBlockCount > 0) {
+        std::vector<SpvReflectBlockVariable*> pushBlocks(pushConstantBlockCount);
+        spvReflectEnumeratePushConstantBlocks(&module, &pushConstantBlockCount, pushBlocks.data());
+
+        for (auto* block : pushBlocks) {
+            PushConstantRange range;
+            range.Offset = block->offset;
+            range.Size = block->size;
+            // Map the SPIRV-Reflect stage to your Axel stage
+            range.Stages = SpvToAxelStage(module.shader_stage);
+
+            m_PushConstantRanges.push_back(range);
+        }
+    }
+
+    spvReflectDestroyShaderModule(&module);
+}
+
+void  Axel::VulkanShader::ReflectVertexLayout(const std::vector<uint32_t>& code) {
+    SpvReflectShaderModule module;
+    spvReflectCreateShaderModule(code.size() * 4, code.data(), &module);
+
+    uint32_t count = 0;
+    spvReflectEnumerateInputVariables(&module, &count, nullptr);
+    std::vector<SpvReflectInterfaceVariable*> inputs(count);
+    spvReflectEnumerateInputVariables(&module, &count, inputs.data());
+
+    std::vector<BufferElement> elements;
+    for (auto* input : inputs) {
+        if (input->built_in != -1) continue;
+
+        // Use your updated BufferElement with Location
+        elements.push_back({
+            SpirvToAxelType(input->format),
+            input->name,
+            input->location
+            });
+    }
+
+    // Final truth: The BufferLayout for the whole shader
+    m_VertexLayout = BufferLayout(elements);
     spvReflectDestroyShaderModule(&module);
 }
 

@@ -1,10 +1,32 @@
 Scene:
   Name: Untitled
-  AssetID: 172367124794570515
-  RootEntity: 11492183630024320535
-  ActiveCamera: 2823646522594779581
+  AssetID: 17208882620350165278
+  RootEntity: 15891434787876049277
+  ActiveCamera: 7721050358263001465
   Entity:
-    ID: 8099849456200318952
+    ID: 12160861206656153038
+    Component:
+      Type: 351284227
+      Name: Entity
+    Component:
+      Type: 3603171463
+      Position:
+        x: 0
+        y: 0
+        z: 0
+      Rotation:
+        x: 0
+        y: 0
+        z: 0
+      Scale:
+        x: 1
+        y: 1
+        z: 1
+    Component:
+      Type: 1446886352
+      Texture: 8241140089669507379
+  Entity:
+    ID: 9687836572498434118
     Component:
       Type: 351284227
       Name: Main Camera
@@ -29,33 +51,7 @@ Scene:
       OrthoSize: 10
       Primary: true
   Entity:
-    ID: 17730316946127924490
-    Component:
-      Type: 351284227
-      Name: Entity
-    Component:
-      Type: 3603171463
-      Position:
-        x: 1
-        y: 2
-        z: 0
-      Rotation:
-        x: 0
-        y: 0
-        z: 0
-      Scale:
-        x: 1
-        y: 1
-        z: 1
-    Component:
-      Type: 1446886352
-      Texture: 1964928337486924070
-      Color:
-        x: 1
-        y: 1
-        z: 1
-  Entity:
-    ID: 13757593794448323324
+    ID: 13682748137524396917
     Component:
       Type: 351284227
       Name: Entity
@@ -75,21 +71,17 @@ Scene:
         z: 1
     Component:
       Type: 1446886352
-      Texture: 7950634661678540480
-      Color:
-        x: 1
-        y: 1
-        z: 1
+      Texture: 2728378611703861951
   Entity:
-    ID: 404843240069853797
+    ID: 12639162660745280093
     Component:
       Type: 351284227
       Name: Entity
     Component:
       Type: 3603171463
       Position:
-        x: 0
-        y: 0
+        x: 1
+        y: 2
         z: 0
       Rotation:
         x: 0
@@ -101,8 +93,4 @@ Scene:
         z: 1
     Component:
       Type: 1446886352
-      Texture: 3837470083745609467
-      Color:
-        x: 1
-        y: 1
-        z: 1
+      Texture: 2716709299778378954

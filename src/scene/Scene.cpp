@@ -103,6 +103,7 @@ void Axel::Scene::Serialize(IArchive& ar)
         for (auto [uuid, handle] : m_EntityMap)
         {
             ar.BeginStruct("Entity");
+
             ar.Property("ID",uuid);
 
             for (auto [id, storage] : m_Registry.storage())

@@ -49,15 +49,6 @@ void Axel::YAMLArchive::Property(const char* name, float& value)
 	}
 }
 
-void Axel::YAMLArchive::Property(const char* name, int& value)
-{
-	if (m_Mode == ArchiveModeOptions::Save) m_Data->Emitter << YAML::Key << name << YAML::Value << value;
-	else {
-		auto& node = m_Data->NodeStack.top();
-		if (node[name]) value = node[name].as<int>();
-	}
-}
-
 void Axel::YAMLArchive::Property(const char* name, bool& value)
 {
 	if (m_Mode == ArchiveModeOptions::Save) m_Data->Emitter << YAML::Key << name << YAML::Value << value;
@@ -131,15 +122,29 @@ void Axel::YAMLArchive::Property(const char* name, Vec3& value)
 		EndStruct();
 	}
 }
+
+void Axel::YAMLArchive::Property(const char* name, uint32_t& value) {
+	if (m_Mode == ArchiveModeOptions::Save) m_Data->Emitter << YAML::Key << name << YAML::Value << value;
+	else {
+		auto& node = m_Data->NodeStack.top();
+		if (node[name]) value = node[name].as<int>();
+	}
+}
+void Axel::YAMLArchive::Property(const char* name, int32_t& value) {
+	if (m_Mode == ArchiveModeOptions::Save) m_Data->Emitter << YAML::Key << name << YAML::Value << value;
+	else {
+		auto& node = m_Data->NodeStack.top();
+		if (node[name]) value = node[name].as<int>();
+	}
+}
+
+void Axel::YAMLArchive::Property(const char* name, Vec2& value) {}
+void Axel::YAMLArchive::Property(const char* name, Vec4& value) {}
+
 #pragma endregion
 
 #pragma region Primitive Const Properties
 void Axel::YAMLArchive::Property(const char* name, const float& value)
-{
-	if (m_Mode == ArchiveModeOptions::Save) m_Data->Emitter << YAML::Key << name << YAML::Value << value;
-}
-
-void Axel::YAMLArchive::Property(const char* name, const int& value)
 {
 	if (m_Mode == ArchiveModeOptions::Save) m_Data->Emitter << YAML::Key << name << YAML::Value << value;
 }
@@ -175,6 +180,8 @@ void Axel::YAMLArchive::Property(const char* name, const Vec3& value)
 	}
 }
 
+void Axel::YAMLArchive::Property(const char* name, const Vec2& value) {}
+void Axel::YAMLArchive::Property(const char* name, const Vec4& value) {}
 void Axel::YAMLArchive::Property(const char* name, const std::vector<UUID>& container)
 {
 	if (m_Mode == ArchiveModeOptions::Save)
@@ -189,6 +196,14 @@ void Axel::YAMLArchive::Property(const char* name, const std::vector<UUID>& cont
 		m_Data->Emitter << YAML::EndSeq;
 	}
 }
+void Axel::YAMLArchive::Property(const char* name,const uint32_t& value) {
+	if (m_Mode == ArchiveModeOptions::Save) m_Data->Emitter << YAML::Key << name << YAML::Value << value;
+}
+void Axel::YAMLArchive::Property(const char* name,const int32_t& value) {
+	if (m_Mode == ArchiveModeOptions::Save) m_Data->Emitter << YAML::Key << name << YAML::Value << value;
+}
+
+
 #pragma endregion
 
 bool Axel::YAMLArchive::BeginStruct(const char* name)

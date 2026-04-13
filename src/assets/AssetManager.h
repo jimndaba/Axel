@@ -25,6 +25,8 @@ namespace Axel
 
         static void RegisterAsset(AssetMetadata& meta);
 
+        
+
         template<typename T>
         static Ref<T> GetAsset(UUID id) {
             return s_Instance->GetAssetInternal<T>(id);           
@@ -34,7 +36,11 @@ namespace Axel
         static Ref<T> GetAssetByName(const std::string& name) {
             return s_Instance->GetAssetByNameInternal<T>(name);
         }
-
+        template<typename T>
+        static void RegisterAsset(Ref<T> asset)
+        {
+            s_Instance->RegisterAssetInternal<T>(asset);
+        }
         static void SaveRegistry(const std::string& path);
 		static void LoadRegistry(const std::string& path);
 
@@ -48,12 +54,12 @@ namespace Axel
         template<typename T>
         Ref<T> GetAssetInternal(UUID id) {
             // 1. Check if it's already in memory
-            if (s_Instance->m_LoadedAssets.find(id) != s_Instance->m_LoadedAssets.end()) {
-                return std::static_pointer_cast<T>(s_Instance->m_LoadedAssets[id]);
+            if (m_LoadedAssets.find(id) != m_LoadedAssets.end()) {
+                return std::static_pointer_cast<T>(m_LoadedAssets[id]);
             }
 
             // 2. Not in memory, find where it is on disk via the Registry
-            const AssetMetadata& metadata = s_Instance->m_Registry.GetMetadata(id);
+            const AssetMetadata& metadata = m_Registry.GetMetadata(id);
             if (metadata.AssetType == AssetTypeOptions::None) return nullptr;
 
             // 3. Load it based on type
@@ -65,7 +71,7 @@ namespace Axel
                 asset = std::static_pointer_cast<IAsset>(TextureLoader::Load(metadata.Path));
                 break;
             case AssetTypeOptions::Shader:
-                asset = std::static_pointer_cast<IAsset>(Shader::Create(*s_Instance->m_Device, metadata.Path));
+                asset = std::static_pointer_cast<IAsset>(Shader::Create(*m_Device, metadata.Path));
                 break;
             case AssetTypeOptions::MaterialTemplate:
                 //asset = std::static_pointer_cast<IAsset>(MaterialTemplateLoader::Load(metadata.Path));
@@ -74,7 +80,7 @@ namespace Axel
 
             if (asset) {
                 asset->AssetID = id;
-                s_Instance->m_LoadedAssets[id] = asset;
+                m_LoadedAssets[id] = asset;
                 return std::static_pointer_cast<T>(asset);
             }
 
@@ -93,8 +99,36 @@ namespace Axel
 
             // 2. If the UUID is null/invalid, the asset doesn't exist in the registry
             // 3. Reuse the existing UUID-based logic (which handles caching and loading)
-            return GetAsset<T>(id);
+            return GetAssetInternal<T>(id);
         }
+
+        template<typename T>
+        void RegisterAssetInternal(Ref<T> asset)
+        {
+            static_assert(std::is_base_of<IAsset, T>::value, "RegisterAsset only accepts types derived from IAsset");
+
+            if (!asset) {
+                AXLOG_ERROR("Attempted to register a null asset!");
+                return;
+            }
+
+            UUID id = asset->AssetID;
+
+            // Check if it's already there to prevent accidental leaks or logic errors
+            if (m_LoadedAssets.find(id) != m_LoadedAssets.end()) {
+                AXLOG_WARN("Asset with UUID {0} is already registered. Skipping.", id);
+                return;
+            }
+
+            // Since m_LoadedAssets stores Ref<IAsset>, 
+            // the polymorphism handles the cast automatically.
+            m_LoadedAssets[id] = asset;
+            AssetMetadata data;
+            data.AssetID = id;
+            m_Registry.AddAsset(id, data);
+        }
+
+
         AssetRegister m_Registry;
         std::unordered_map<UUID, Ref<IAsset>> m_LoadedAssets; // In-memory cache of loaded assets
     };	

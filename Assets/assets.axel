@@ -1,0 +1,11 @@
+Assets:
+  - Asset
+  - ID: 11675698008640172650
+    Name: SpriteShader
+    Path: Assets/Shaders/Quad
+    Type: 3
+  - Asset
+  - ID: 2831437491609379624
+    Name: ""
+    Path: ""
+    Type: 0

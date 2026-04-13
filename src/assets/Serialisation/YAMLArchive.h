@@ -16,27 +16,33 @@ namespace Axel
 		
 		// Primitives
 		virtual void Property(const char* name, float& value) override;
-		virtual void Property(const char* name, int& value) override;
 		virtual void Property(const char* name, bool& value) override;
 		virtual void Property(const char* name, std::string& value) override;
 		virtual void Property(const char* name, uint64_t& value) override;
 		virtual void Property(const char* name, UUID& value) override;
 		virtual void Property(const char* name, std::vector<UUID>& container) override;
+		virtual void Property(const char* name, uint32_t& value) override;
+		virtual void Property(const char* name, int32_t& value) override;
 
 		//Const versions for primitives (for read-only properties)
-		virtual void Property(const char* name, const float& value) override;
-		virtual void Property(const char* name, const int& value) override;
+		virtual void Property(const char* name, const float& value) override;	
 		virtual void Property(const char* name, const bool& value) override;
 		virtual void Property(const char* name, const std::string& value) override;
 		virtual void Property(const char* name, const uint64_t& value) override;
 		virtual void Property(const char* name, const UUID& value) override;
 		virtual void Property(const char* name, const std::vector<UUID>& container) override;
+		virtual void Property(const char* name, const uint32_t& value)  override;
+		virtual void Property(const char* name, const int32_t& value)  override;
 		
 		// Complex Axel types (Agnostic)
 		virtual void Property(const char* name, Vec3& value) override;
+		virtual void Property(const char* name, Vec2& value) override;
+		virtual void Property(const char* name, Vec4& value) override;
 
 		//Const version for complex types
+		virtual void Property(const char* name, const Vec2& value) override;
 		virtual void Property(const char* name, const Vec3& value) override;
+		virtual void Property(const char* name, const Vec4& value) override;
 		
 		// Structure handling
 		virtual bool BeginStruct(const char* name) override;

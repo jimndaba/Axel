@@ -10,19 +10,20 @@
 #include "Pipeline.h"
 #include "Buffers.h"
 #include "backends/FrameBuffer.h"
-
+#include "MaterialTemplate.h"
 #include <assets/AssetManager.h>
 #include <assets/Loaders/TextureLoader.h>
 #include "DescriptorSet.h"
+#include "MaterialManager.h"
 
 std::unique_ptr<Axel::RendererData> Axel::Renderer::s_Data;
 std::shared_ptr<Axel::Texture2D> Axel::Renderer::s_WhiteTexture = nullptr;
 
-void Axel::Renderer::Init(GraphicsContext* context)
+void Axel::Renderer::Init(GraphicsContext* context,MaterialManager* mat_manager)
 {
 	s_Data = std::make_unique<RendererData>();
     s_Data->Context = context;
-   
+    s_Data->m_MaterialManager = mat_manager;
   
 
     struct SimpleVertex {
@@ -54,14 +55,11 @@ void Axel::Renderer::Init(GraphicsContext* context)
 
     //3. Load Shader & Build Pipeline
     s_Data->QuadShader = AssetManager::GetAssetByName<Shader>("SpriteShader");
-    //Axel::Shader::Create(*s_Data->Context->GetDevice().get(), "Assets/Shaders/Quad");
+    
+    s_Data->m_matTemplate = std::make_shared<Axel::MaterialTemplate>(s_Data->QuadShader->AssetID);
+    s_Data->m_matTemplate->BuildPipeline(s_Data->Context);    
 
-    PipelineSpecification spec;
-    spec.Shader = s_Data->QuadShader;
-    spec.Layout = s_Data->QuadVertexBuffer->GetLayout();
-    spec.TargetRenderPass = s_Data->Context->GetMainRenderPass();
-    s_Data->QuadPipeline = Axel::Pipeline::Create(s_Data->Context, spec);
-
+    AssetManager::RegisterAsset<MaterialTemplate>(s_Data->m_matTemplate);
 
     s_Data->SpriteSSBO = ShaderStorageBuffer::Create(
         context,
@@ -73,8 +71,8 @@ void Axel::Renderer::Init(GraphicsContext* context)
         sizeof(SceneCamera), 0);
 
 
-
-    s_Data->MainDescriptorSet = DescriptorSet::Create(s_Data->Context, s_Data->QuadPipeline, 0);    
+    auto pipeline = s_Data->m_matTemplate->GetPipeline();
+    s_Data->MainDescriptorSet = DescriptorSet::Create(s_Data->Context, pipeline, 0);
     s_Data->MainDescriptorSet->Write("ubo",s_Data->CameraUBO);
     s_Data->MainDescriptorSet->Write("ssbo", s_Data->SpriteSSBO);
     
@@ -104,7 +102,7 @@ void Axel::Renderer::Shutdown()
     s_Data->CameraUBO->Destroy(s_Data->Context);
     s_Data->SpriteSSBO->Destroy(s_Data->Context);
     s_Data->MainDescriptorSet->Destroy();  
-    s_Data->QuadPipeline->Destroy();
+    s_Data->m_matTemplate->GetPipeline()->Destroy();
 
 	s_Data.reset();
 }
@@ -163,9 +161,13 @@ void Axel::Renderer::BeginScene(Scene* current_scene)
     }     
     s_Data->CameraData = current_camera;
     s_Data->CameraUBO->SetData(&s_Data->CameraData, sizeof(SceneCamera));
+
+
+   
     // 4. Batch Submission
     auto render_view = current_scene->GetAllEntitiesWith<TransformComponent, SpriteComponent>();
     for (auto [entity, trans, sprite] : render_view) {
+       
         SubmitSprite(trans.WorldTransform, sprite.Color, sprite.TextureHandle);
     }
 
@@ -181,12 +183,18 @@ void Axel::Renderer::EndScene()
             return a.TextureHandle < b.TextureHandle;
         });
 
+    s_Data->m_MaterialManager->Update();
+
     // 1. Prepare Data (The "Flush")
     uint32_t dataSize = s_Data->SpritePackets.size() * sizeof(SpriteRenderPacket);
     s_Data->SpriteSSBO->SetData(s_Data->SpritePackets.data(), dataSize);
 
     // 2. Prepare Pipeline
-    s_Data->QuadPipeline->Bind(*s_Data->Context);
+    
+    s_Data->m_matTemplate->GetPipeline()->Bind(*s_Data->Context);
+    auto materialBuffer = s_Data->m_MaterialManager->GetMaterialBuffer();
+    s_Data->MainDescriptorSet->Write("MaterialTable", materialBuffer);
+
 
     // 3. Bind Resources
     // Set 0: Camera (UBO), Set 1: Sprites (SSBO), Set 2: Texture (Sampler)
@@ -194,10 +202,13 @@ void Axel::Renderer::EndScene()
     s_Data->QuadVertexBuffer->Bind(*s_Data->Context);
     s_Data->QuadIndexBuffer->Bind(*s_Data->Context);
 
-    BindDescriptorSet(0, s_Data->MainDescriptorSet, s_Data->QuadPipeline);
+    auto pipeline = s_Data->m_matTemplate->GetPipeline();
+    BindDescriptorSet(0, s_Data->MainDescriptorSet, pipeline);
 
     // 4. Dispatch to GPU
     uint32_t instanceCount = static_cast<uint32_t>(s_Data->SpritePackets.size());
+      
+
     DrawIndexedInstanced(6, instanceCount);
 
     // 5. Clear for next frame

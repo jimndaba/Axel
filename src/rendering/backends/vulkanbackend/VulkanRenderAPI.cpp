@@ -8,6 +8,28 @@
 #include "VulkanTexture2D.h"
 #include "VulkanShader.h"
 
+VkShaderStageFlags AxelStageToVulkan(Axel::ShaderStage stages) {
+    VkShaderStageFlags flags = 0;
+
+    if ((uint32_t)stages & (uint32_t)Axel::ShaderStage::Vertex)
+        flags |= VK_SHADER_STAGE_VERTEX_BIT;
+
+    if ((uint32_t)stages & (uint32_t)Axel::ShaderStage::Fragment)
+        flags |= VK_SHADER_STAGE_FRAGMENT_BIT;
+
+    if ((uint32_t)stages & (uint32_t)Axel::ShaderStage::Compute)
+        flags |= VK_SHADER_STAGE_COMPUTE_BIT;
+
+    if ((uint32_t)stages & (uint32_t)Axel::ShaderStage::Geometry)
+        flags |= VK_SHADER_STAGE_GEOMETRY_BIT;
+
+    // Handle your "All" or "AllGraphics" shortcuts if you have them
+    if ((uint32_t)stages & (uint32_t)Axel::ShaderStage::All)
+        flags |= VK_SHADER_STAGE_ALL_GRAPHICS;
+
+    return flags;
+}
+
 Axel::VulkanRenderAPI::VulkanRenderAPI(VulkanContext* context):
 	m_Context(context)
 {
@@ -154,6 +176,25 @@ void Axel::VulkanRenderAPI::BindTextureDescriptorSet(uint32_t setIndex, Ref<Text
     {
         AXLOG_ERROR("No Descriptor found for Texture: {}", texture->AssetID);
     }
+}
+
+void Axel::VulkanRenderAPI::PushConstants(Ref<Pipeline> pipeline, ShaderStage stages, const void* data, uint32_t size, uint32_t offset)
+{
+    auto cmdbuffer = static_cast<VulkanContext*>(m_Context)->GetActiveCommandBuffer();
+    auto vkPipeline = std::static_pointer_cast<VulkanPipeline>(pipeline);
+    VkPipelineLayout layout = vkPipeline->GetLayout();
+
+    // Map Axel ShaderStageOptions to Vulkan Flags
+    VkShaderStageFlags vkStages = AxelStageToVulkan(stages);
+
+    vkCmdPushConstants(
+        cmdbuffer,
+        layout,
+        vkStages,
+        offset,
+        size,
+        data
+    );
 }
 
 void Axel::VulkanRenderAPI::ValidateCommandBuffer(Ref<RenderCommandBuffer> commandBuffer)

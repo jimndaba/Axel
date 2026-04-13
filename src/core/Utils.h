@@ -4,6 +4,7 @@
 
 #include <rendering/GraphicsCore.h>
 #include <vulkan/vulkan.h>
+#include <spirv_refl/spirv_reflect.h>
 
 namespace Axel
 {
@@ -59,6 +60,17 @@ namespace Axel
             // Add more as you expand (e.g., InputAttachments for deferred rendering      
         }
         return VK_DESCRIPTOR_TYPE_MAX_ENUM;
+    }
+
+    static ShaderStage SpvToAxelStage(SpvReflectShaderStageFlagBits stage) {
+        switch (stage) {
+        case SPV_REFLECT_SHADER_STAGE_VERTEX_BIT:   return  ShaderStage::Vertex;
+        case SPV_REFLECT_SHADER_STAGE_FRAGMENT_BIT: return  ShaderStage::Fragment;
+        case SPV_REFLECT_SHADER_STAGE_COMPUTE_BIT:  return  ShaderStage::Compute;
+        case SPV_REFLECT_SHADER_STAGE_GEOMETRY_BIT: return  ShaderStage::Geometry;
+            // Add others if your engine supports Tesselation, etc.
+        default: return  ShaderStage::None;
+        }
     }
 
 }
