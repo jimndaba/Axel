@@ -188,5 +188,14 @@ Axel::SwapchainSupportDetails Axel::VulkanSwapchain::QuerySwapchainSupport(VkPhy
         details.PresentModes.resize(modeCount);
         vkGetPhysicalDeviceSurfacePresentModesKHR(device, m_Surface, &modeCount, details.PresentModes.data());
     }
+
+    // Inside VulkanSwapChain or where you query 
+    uint32_t minImageCount = details.Capabilities.minImageCount + 1;
+
+    // Ensure we don't exceed the hardware's maximum
+    if (details.Capabilities.maxImageCount > 0 && minImageCount > details.Capabilities.maxImageCount) {
+        minImageCount = details.Capabilities.maxImageCount;
+    }
+
     return details;
 }

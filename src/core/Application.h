@@ -32,6 +32,8 @@ namespace Axel
         // Getters for global access (optional, or use Service Locator)
         static Application& Get() { return *s_Instance; }
         AxPlatform& GetPlatform() { return *m_Platform; }
+        GraphicsContext* GetGrapicsContext() { return mContext.get(); }
+    
 
         void LoadGameDLL(const std::string& path);
 

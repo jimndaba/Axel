@@ -33,8 +33,7 @@ namespace Axel
         Vec4 Color;
         uint32_t TextureHandle;
         uint32_t MaterialIndexHandle;
-        uint32_t padding[2];
-        // float EntityID; // Useful for mouse picking later
+        uint32_t padding[2]; 
     };
 }
 

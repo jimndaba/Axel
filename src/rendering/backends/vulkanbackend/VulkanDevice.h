@@ -60,6 +60,11 @@ namespace Axel
         VkPhysicalDevice GetPhysicalDevice() const { return m_PhysicalDevice; }
         VkQueue GetGraphicsQueue() const { return m_GraphicsQueue; }
         VkQueue GetPresentQueue() const { return m_PresentQueue; }
+        uint32_t GetGraphicsQueueFamily() const {
+            // We know this has a value because the device wouldn't be 
+            // initialized otherwise, but .value() is safer than * for debugging.
+            return m_Queues.GraphicsFamily.value();
+        }
         QueueFamilyIndices GetQueueFamilyIndices() const { return m_Queues; }
         uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
         const DeviceCapabilities& GetCaps() const;

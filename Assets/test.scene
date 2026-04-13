@@ -1,10 +1,10 @@
 Scene:
   Name: Untitled
-  AssetID: 13650667962104365447
-  RootEntity: 15285956746277838946
-  ActiveCamera: 393489342785748088
+  AssetID: 4571849282418708865
+  RootEntity: 3478447224560521228
+  ActiveCamera: 13658910471031572600
   Entity:
-    ID: 1845962799598907550
+    ID: 5873633937370799024
     Component:
       Type: 351284227
       Name: Main Camera
@@ -29,7 +29,7 @@ Scene:
       OrthoSize: 10
       Primary: true
   Entity:
-    ID: 11184356677647716924
+    ID: 17016661874254715402
     Component:
       Type: 351284227
       Name: Entity
@@ -49,10 +49,10 @@ Scene:
         z: 1
     Component:
       Type: 1446886352
-      Texture: 8618834965816136409
-      Material: 8618834965816136409
+      Texture: 6424030332372333482
+      Material: 6424030332372333482
   Entity:
-    ID: 12215323634967586784
+    ID: 8932041137244253273
     Component:
       Type: 351284227
       Name: Entity
@@ -72,10 +72,10 @@ Scene:
         z: 1
     Component:
       Type: 1446886352
-      Texture: 8588261603100664028
-      Material: 8588261603100664028
+      Texture: 7890392226395300714
+      Material: 7890392226395300714
   Entity:
-    ID: 8602430671304588861
+    ID: 11820676038399685739
     Component:
       Type: 351284227
       Name: Entity
@@ -95,5 +95,5 @@ Scene:
         z: 1
     Component:
       Type: 1446886352
-      Texture: 8750363699748454274
-      Material: 8750363699748454274
+      Texture: 14623390195409372423
+      Material: 14623390195409372423

@@ -2,7 +2,12 @@
 #ifndef EVENTBUS_H
 #define EVENTBUS_H
 
+#include <unordered_map>
+#include <typeindex>
+#include <vector>
+#include <list>
 #include "core/Core.h"
+
 
 namespace Axel
 {

@@ -6,8 +6,11 @@
 #include "rendering/Renderer.h"
 #include <rendering/MaterialManager.h>
 
+Axel::Application* Axel::Application::s_Instance;
+
 Axel::Application::Application()
 {
+	s_Instance = this;
 	m_Logger = std::make_unique<Logger>();
 	m_Logger->Init();
 	AXLOG_INFO("Axel Engine: Booting...");
@@ -20,7 +23,7 @@ Axel::Application::Application()
 
 	Init();
 
-	LoadGameDLL("AxelSandbox.dll");
+	//LoadGameDLL("AxelSandbox.dll");
 }
 
 Axel::Application::~Application()
@@ -43,6 +46,7 @@ void Axel::Application::Run()
 
 
 		OnUpdate(dt);	
+
 
 		InputState inputState;
 		if(m_ActiveGame)

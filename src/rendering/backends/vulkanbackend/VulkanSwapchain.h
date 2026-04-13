@@ -31,7 +31,8 @@ namespace Axel
         uint32_t GetImageCount() const { return static_cast<uint32_t>(m_Images.size()); }
         VkImageView GetImageView(uint32_t index) const { return m_ImageViews[index]; }
         const std::vector<VkImageView>& GetImageViews() const { return m_ImageViews; }
- 
+        uint32_t GetMinImageCount() const { return m_MinImageCount; }
+
         // Returns the index of the image we should render to
         uint32_t AcquireNextImage(VkSemaphore signalSemaphore);
         uint32_t GetCurrentImageIndex() const { return m_CurrentImageIndex; }
@@ -59,7 +60,7 @@ namespace Axel
         VkSwapchainKHR m_Swapchain = VK_NULL_HANDLE;
         VkFormat m_Format;
         VkExtent2D m_Extent;
-       
+        uint32_t m_MinImageCount;
         std::vector<VkImage> m_Images;
         std::vector<VkImageView> m_ImageViews;
     };

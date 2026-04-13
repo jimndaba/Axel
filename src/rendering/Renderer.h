@@ -81,8 +81,8 @@ namespace Axel
         static void BeginFrame();
         static void EndFrame();
 
-        void BeginRenderPass(Ref<RenderPass> renderPass, bool clear);
-        void EndRenderPass(Ref<RenderPass> renderPass);
+        static void BeginRenderPass(Ref<RenderPass> renderPass, bool clear);
+        static void EndRenderPass(Ref<RenderPass> renderPass);
 
         // Scene Scope
         static void BeginScene(Scene* current_scene);
