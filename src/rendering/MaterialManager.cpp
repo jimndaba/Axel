@@ -80,7 +80,7 @@ void Axel::MaterialManager::Update()
         currentOffset += alignedSize;
         // Map the UUID to the specific offset and size
         // This 'i' becomes your rc.u_MaterialIndex!
-        m_MaterialRegistry[instance->AssetID] = { currentOffset, size };
+        m_MaterialRegistry[instance->AssetID] = { currentOffset, size,i };
     }
 
     // 4. Synchronization
@@ -92,10 +92,9 @@ void Axel::MaterialManager::Update()
 
 uint32_t Axel::MaterialManager::GetMaterialIndex(UUID id) {
     auto it = m_MaterialRegistry.find(id);
-    if (it != m_MaterialRegistry.end()) {
-        // Since all structs are padded to 16, and assuming 
-        // they are the same size in a batch:
-        return it->second.Offset / it->second.Size;
+    if (it != m_MaterialRegistry.end())
+    {
+        return it->second.Index; // No division, no guesswork
     }
     return 0;
 }

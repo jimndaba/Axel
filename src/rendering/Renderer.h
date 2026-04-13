@@ -97,7 +97,7 @@ namespace Axel
         static void SubmitParticle(const Particle& particle);
         static void SubmitUI(Ref<UIElement> element);
         static void SubmitInstanced(Ref<Mesh> mesh, Ref<Material> material, const std::vector<glm::mat4>& transforms);
-        static void SubmitSprite(Mat4& transform, Vec4 colour, UUID TextureHandle);
+        static void SubmitSprite(Mat4& transform, Vec4 colour, UUID TextureHandle, UUID Material);
 
         static Ref<DescriptorSet>& ProvideTextureDescriptor(const Ref<Texture2D>& texture,Ref<Pipeline>& pipeline, uint32_t index);
         static void RealeaseTextureDescriptor(const Ref<Texture2D>& texture,Ref<Pipeline>& pipeline);

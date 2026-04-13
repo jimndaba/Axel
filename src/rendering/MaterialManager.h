@@ -14,6 +14,7 @@ namespace Axel
 	struct MaterialMetadata {
 		uint32_t Offset; // Offset in the global GPU buffer
 		uint32_t Size;   // Size of this specific material block
+        uint32_t Index;
 	};
 
 

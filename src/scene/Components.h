@@ -31,12 +31,14 @@ namespace Axel
 
 	struct SpriteComponent : ISerialisable
 	{
+		UUID MaterialID;
 		UUID TextureHandle; // Just the ID!
 		Vec4 Color = { 1.0f, 1.0f, 1.0f, 1.0f };
 
 		// This makes the Inspector UI easy to build later
 		void Serialize(IArchive& ar) {		
 			ar.Property("Texture", TextureHandle);
+			ar.Property("Material", TextureHandle);
 			ar.Property("Color", Color);		
 		}
 	};

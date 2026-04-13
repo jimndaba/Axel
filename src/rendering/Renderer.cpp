@@ -178,7 +178,7 @@ void Axel::Renderer::BeginScene(Scene* current_scene)
     auto render_view = current_scene->GetAllEntitiesWith<TransformComponent, SpriteComponent>();
     for (auto [entity, trans, sprite] : render_view) {
        
-        SubmitSprite(trans.WorldTransform, sprite.Color, sprite.TextureHandle);
+        SubmitSprite(trans.WorldTransform, sprite.Color, sprite.TextureHandle,sprite.MaterialID);
     }
 
 }
@@ -281,9 +281,10 @@ void Axel::Renderer::SubmitInstanced(Ref<Mesh> mesh, Ref<Material> material, con
     */
 }
 
-void Axel::Renderer::SubmitSprite(Mat4& transform, Vec4 colour, UUID texture)
+void Axel::Renderer::SubmitSprite(Mat4& transform, Vec4 colour, UUID TextureHandle, UUID MaterialID)
 {
-    s_Data->SpritePackets.push_back({ transform, colour,0 });
+    auto index= s_Data->m_MaterialManager->GetMaterialIndex(MaterialID);
+    s_Data->SpritePackets.push_back({ transform, colour,0,index });
 }
 
 
