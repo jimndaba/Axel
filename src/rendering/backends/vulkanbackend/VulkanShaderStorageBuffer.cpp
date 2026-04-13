@@ -62,9 +62,7 @@ void Axel::VulkanShaderStorageBuffer::SetData(const void* data, uint32_t size, u
 
 void Axel::VulkanShaderStorageBuffer::Bind(GraphicsContext& ctxt, uint32_t binding)
 {
-    auto device = std::static_pointer_cast<VulkanDevice>(ctxt.GetDevice());
-    auto commandBuffer = Renderer::GetActiveCommandBuffer();
-    //Renderer::UpdateBufferDescriptor(binding, , VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+
 }
 
 void Axel::VulkanShaderStorageBuffer::Destroy(GraphicsContext* context)

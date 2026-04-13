@@ -146,7 +146,29 @@ void Axel::VulkanShader::Reflect(const std::vector<uint32_t>& spirvCode, ShaderS
             if (resource.Type == ShaderResourceType::UniformBuffer || resource.Type == ShaderResourceType::StorageBuffer) {
                 resource.Size = binding->block.size;
 
+                std::string prefix = "";
+                SpvReflectBlockVariable* rootBlock = &binding->block;
+                if (rootBlock->member_count == 1 && rootBlock->members[0].type_description->op == SpvOpTypeRuntimeArray) {
+                    // Grab the name: e.g., "material"
+                    prefix = std::string(rootBlock->members[0].name) + ".";
+                    // Drill down to the struct members inside the array
+                    rootBlock = &rootBlock->members[0];
+                }
+
                 // Drill into the members of the struct
+                for (uint32_t j = 0; j < rootBlock->member_count; ++j) {
+                    auto& spvMember = rootBlock->members[j];
+
+                    ShaderMember member;
+                    member.Name = prefix + spvMember.name;
+                    member.Offset = spvMember.offset;
+                    member.Size = spvMember.size;
+                    member.Type = MapMemberType(spvMember);
+
+                    resource.Members.push_back(member);
+                }
+               
+                /*
                 for (uint32_t j = 0; j < binding->block.member_count; ++j) {
                     auto& spvMember = binding->block.members[j];
 
@@ -161,6 +183,7 @@ void Axel::VulkanShader::Reflect(const std::vector<uint32_t>& spirvCode, ShaderS
 
                     resource.Members.push_back(member);
                 }
+                */
             }
 
             // Store in a map: m_Resources[set_index][binding_index]

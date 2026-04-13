@@ -51,6 +51,7 @@ namespace Axel
         uint32_t DrawCalls = 0;
         uint32_t IndexCount = 0;
         uint32_t MaxSprites = 10000;
+        uint32_t CurrentFrameIndex = 0;
 
         SceneCamera CameraData = SceneCamera();
         GraphicsContext* Context = nullptr;
@@ -65,6 +66,7 @@ namespace Axel
         Ref<ShaderStorageBuffer> SpriteSSBO;
         Ref<UniformBuffer> CameraUBO;
         Ref<DescriptorSet> MainDescriptorSet;
+        std::vector<Ref<DescriptorSet>> MaterialDescriptorSets;
     };
 
    

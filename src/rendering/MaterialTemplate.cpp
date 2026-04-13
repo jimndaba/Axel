@@ -19,22 +19,28 @@ void Axel::MaterialTemplate::BuildPipeline(GraphicsContext* context)
 
     const uint32_t MaterialSetIndex = 1;
 
-    if (allresources.find(MaterialSetIndex) != allresources.end()) {
+    m_Descriptors.clear();
+
+    if (allresources.find(MaterialSetIndex) != allresources.end())
+    {
         auto& bindings = allresources.at(MaterialSetIndex);
 
-        for (auto& [binding, resource] : bindings) {
-            // We look for our "Uber-Buffer" (usually at binding 0)
-            if (resource.Name == "MaterialData" || resource.Name == "u_MaterialTable") {
-                m_Descriptors.clear();
+        for (auto& [bindingIndex, resource] : bindings)
+        {
+            // We only want the UBO that holds scalar/vector properties.
+            // The texture sampler at binding 1 is handled separately.
+            if (resource.Type != ShaderResourceType::StorageBuffer)
+                continue;
 
-                for (auto& member : resource.Members) {
-                    PropertyDescriptor desc;
-                    desc.Name = member.Name;
-                    desc.Type = member.Type;
-                    desc.Offset = member.Offset;
-                    desc.Size = member.Size;
-                    m_Descriptors.push_back(desc);
-                }
+            // Accept the MaterialData block regardless of exact name
+            for (auto& member : resource.Members)
+            {
+                PropertyDescriptor desc;
+                desc.Name = member.Name;
+                desc.Type = member.Type;
+                desc.Offset = member.Offset;
+                desc.Size = member.Size;
+                m_Descriptors.push_back(desc);
             }
         }
     }

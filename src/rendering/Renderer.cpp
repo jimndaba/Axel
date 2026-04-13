@@ -75,6 +75,9 @@ void Axel::Renderer::Init(GraphicsContext* context,MaterialManager* mat_manager)
     s_Data->MainDescriptorSet = DescriptorSet::Create(s_Data->Context, pipeline, 0);
     s_Data->MainDescriptorSet->Write("ubo",s_Data->CameraUBO);
     s_Data->MainDescriptorSet->Write("ssbo", s_Data->SpriteSSBO);
+
+   
+   
     
 
     s_Data->m_texture = Axel::TextureLoader::Load("Assets/Textures/container.jpg");
@@ -87,7 +90,13 @@ void Axel::Renderer::Init(GraphicsContext* context,MaterialManager* mat_manager)
     s_Data->MainDescriptorSet->Write("texSampler", s_Data->m_texture);
     s_Data->MainDescriptorSet->Update();
 
-
+    s_Data->MaterialDescriptorSets.resize(2);
+    for (int i = 0 ;i < 2;i++)
+    {
+        s_Data->MaterialDescriptorSets[i] = DescriptorSet::Create(s_Data->Context, pipeline, 1);
+        s_Data->MaterialDescriptorSets[i]->Update();
+    }
+   
 
     AXLOG_INFO("Context Initialized.");
 
@@ -121,6 +130,7 @@ void Axel::Renderer::BeginFrame()
 
 void Axel::Renderer::EndFrame()
 {
+    s_Data->CurrentFrameIndex = (s_Data->CurrentFrameIndex + 1) % 2;
     s_Data->Context->EndFrame();
     s_Data->Context->SwapBuffers();
 }
@@ -185,35 +195,30 @@ void Axel::Renderer::EndScene()
 
     s_Data->m_MaterialManager->Update();
 
-    // 1. Prepare Data (The "Flush")
+    auto materialBuffer = s_Data->m_MaterialManager->GetMaterialBuffer();
+    s_Data->MaterialDescriptorSets[s_Data->CurrentFrameIndex]->Write("u_MaterialTable", materialBuffer);
+    s_Data->MaterialDescriptorSets[s_Data->CurrentFrameIndex]->Update();
+
     uint32_t dataSize = s_Data->SpritePackets.size() * sizeof(SpriteRenderPacket);
     s_Data->SpriteSSBO->SetData(s_Data->SpritePackets.data(), dataSize);
 
-    // 2. Prepare Pipeline
-    
-    s_Data->m_matTemplate->GetPipeline()->Bind(*s_Data->Context);
-    auto materialBuffer = s_Data->m_MaterialManager->GetMaterialBuffer();
-    s_Data->MainDescriptorSet->Write("MaterialTable", materialBuffer);
 
+    auto pipeline = s_Data->m_matTemplate->GetPipeline();
+    pipeline->Bind(*s_Data->Context);
 
-    // 3. Bind Resources
-    // Set 0: Camera (UBO), Set 1: Sprites (SSBO), Set 2: Texture (Sampler)
-    s_Data->SpriteSSBO->Bind(*s_Data->Context, 1);
+    BindDescriptorSet(0, s_Data->MainDescriptorSet, pipeline);
+    BindDescriptorSet(1, s_Data->MaterialDescriptorSets[s_Data->CurrentFrameIndex], pipeline);
+
     s_Data->QuadVertexBuffer->Bind(*s_Data->Context);
     s_Data->QuadIndexBuffer->Bind(*s_Data->Context);
 
-    auto pipeline = s_Data->m_matTemplate->GetPipeline();
-    BindDescriptorSet(0, s_Data->MainDescriptorSet, pipeline);
-
-    // 4. Dispatch to GPU
     uint32_t instanceCount = static_cast<uint32_t>(s_Data->SpritePackets.size());
-      
 
     DrawIndexedInstanced(6, instanceCount);
 
     // 5. Clear for next frame
     s_Data->SpritePackets.clear();
-  
+
 }
 
 void Axel::Renderer::Flush()

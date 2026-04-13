@@ -63,7 +63,7 @@ void Axel::MaterialManager::Update()
     // 2. Buffer Management
     if (m_CPUBuffer.size() < totalSize || !m_MaterialTableBuffer) {
         m_CPUBuffer.resize(totalSize);
-        // Create SSBO at Set 2, Binding 0
+        // Create SSBO at Set 1, Binding 0
         m_MaterialTableBuffer = ShaderStorageBuffer::Create(m_Context, totalSize, 0);
     }
 
@@ -75,13 +75,12 @@ void Axel::MaterialManager::Update()
         uint32_t size = mt->CalculateBufferSize();
 
         // Pack the variant data into the staging buffer
-        instance->PackData(m_CPUBuffer.data() + currentOffset);
-
+        uint32_t alignedSize = (size + 15) & ~15; // Round up to 16
+        instance->PackData(m_CPUBuffer.data() + currentOffset);       
+        currentOffset += alignedSize;
         // Map the UUID to the specific offset and size
         // This 'i' becomes your rc.u_MaterialIndex!
         m_MaterialRegistry[instance->AssetID] = { currentOffset, size };
-
-        currentOffset += size;
     }
 
     // 4. Synchronization
