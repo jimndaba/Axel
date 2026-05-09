@@ -31,7 +31,8 @@ namespace Axel
         inline Axel::Mat4 Inverse(const Axel::Mat4& matrix) {return glm::inverse(matrix);}
         inline Axel::Mat4 Translate(const Axel::Mat4& m, const Vec3& v) { return glm::translate(m, v); }
         inline Axel::Mat4 Rotate(const Axel::Mat4& m, float angleRad, const Vec3& axis) { return glm::rotate(m, angleRad, axis); }
-        inline Axel::Mat4 Scale(const Axel::Mat4& m, const Vec3& v) { return glm::scale(m, v); }
+        inline Axel::Mat4 Scale(const Axel::Mat4& m, const Vec3& v) { return glm::scale(m, v); }        
+       
     }
 }
 

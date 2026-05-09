@@ -12,6 +12,10 @@ Axel::UUID::UUID() : m_UUID(s_UniformDistribution(s_Engine)) {}
 
 Axel::UUID::UUID(uint64_t uuid) : m_UUID(uuid) {}
 
+Axel::UUID::UUID(const UUID& other) : m_UUID(other.m_UUID)
+{
+}
+
 std::string Axel::UUID::ToString() const
 {
     std::stringstream ss;

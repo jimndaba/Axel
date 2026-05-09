@@ -2,7 +2,7 @@
 #ifndef VKRENDERPASS_H
 #define VKRENDERPASS_H
 
-#include "../RenderPass.h"
+#include <rendering/RenderPass.h>
 #include <vulkan/vulkan.h>
 
 namespace Axel {

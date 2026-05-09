@@ -23,15 +23,7 @@ namespace Axel
     class RenderGraph {
     public:
         // Setup a pass without knowing the backend
-        void AddPass(const std::string& name,
-            std::function<void(RenderGraphBuilder&)> setup,
-            RenderGraphPass::ExecuteFunc execute)
-        {
-            auto pass = CreateScope<RenderGraphPass>(name, execute);
-            // Logic to record Read/Write dependencies goes here
-            m_Passes.push_back(std::move(pass));
-        }
-
+        
         void Execute(Ref<RenderCommandBuffer> cmd, const RendererData& data);
     private:
         std::vector<Scope<RenderGraphPass>> m_Passes;

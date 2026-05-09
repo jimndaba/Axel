@@ -40,6 +40,7 @@ namespace Axel
     protected:
         // Overridable by the specific game (e.g., MyGame : public Application)
         virtual void OnStart();
+        virtual void OnLoad();
         virtual void OnUpdate(float deltaTime);
         virtual void OnShutdown();
 

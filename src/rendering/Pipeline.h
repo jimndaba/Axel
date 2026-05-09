@@ -10,7 +10,7 @@ namespace Axel
 	class Shader;
 	class RenderPass;
 	class GraphicsContext;
-
+	class DescriptorSetLayout;
 
 	struct AX_API PipelineSpecification {
 		Ref<Shader> Shader;
@@ -20,6 +20,7 @@ namespace Axel
 		BlendingModeOptions BlendMode = BlendingModeOptions::None;
 
 		bool DepthTest = true;
+		bool EnableBlending = true;
 		bool DepthWrite = true;
 		Ref<RenderPass> TargetRenderPass;
 	};
@@ -31,6 +32,7 @@ namespace Axel
 		virtual void Bind(const GraphicsContext& context) const = 0;
 		virtual void Unbind() const = 0;
 		virtual void Destroy() = 0;
+		virtual Ref<DescriptorSetLayout> GetDescriptorSetLayout(uint32_t set) const = 0;
 		static Ref<Pipeline> Create(GraphicsContext* ctxt, const PipelineSpecification& spec);
 	};
 

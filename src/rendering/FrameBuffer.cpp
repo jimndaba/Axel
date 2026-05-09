@@ -1,12 +1,19 @@
 #include "axelpch.h"
 #include "FrameBuffer.h"
-#include "../RenderAPI.h"
-#include "vulkanbackend/VulkanFramebuffer.h"
-#include "vulkanbackend/VulkanContext.h"
+#include "RenderAPI.h"
+#include "GraphicsContext.h"
+#include "backends/vulkanbackend/VulkanFramebuffer.h"
+#include "backends/vulkanbackend/VulkanContext.h"
 
 std::shared_ptr<Axel::Framebuffer> Axel::Framebuffer::Create(GraphicsContext* ctxt, const FramebufferSpecification& spec)
 {
-    switch (ctxt->GetCurrentAPI()) {
+    RenderAPI::API api;
+    if (!ctxt)
+        api = RenderAPI::API::Vulkan;
+    else
+        api = ctxt->GetCurrentAPI();
+
+    switch (api) {
     case RenderAPI::API::None:
         AXEL_CORE_ASSERT(false, "RendererAPI::None is currently not supported!");
         return nullptr;

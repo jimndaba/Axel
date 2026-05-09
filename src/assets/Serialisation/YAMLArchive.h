@@ -6,6 +6,22 @@
 
 namespace Axel
 {
+	enum class YAMLContextType
+	{
+		Map,
+		Sequence
+	};
+
+	enum class NodeType
+	{
+		Struct,
+		Sequence
+	};
+
+	struct ArchiveFrame
+	{
+		NodeType Type;
+	};
 
 	class AX_API  YAMLArchive : public IArchive
 	{
@@ -19,48 +35,40 @@ namespace Axel
 		virtual void Property(const char* name, bool& value) override;
 		virtual void Property(const char* name, std::string& value) override;
 		virtual void Property(const char* name, uint64_t& value) override;
-		virtual void Property(const char* name, UUID& value) override;
-		virtual void Property(const char* name, std::vector<UUID>& container) override;
 		virtual void Property(const char* name, uint32_t& value) override;
 		virtual void Property(const char* name, int32_t& value) override;
+		virtual void Property(const char* name, double& value) override;
+		virtual void Property(const char* name, int64_t& value) override;
+		virtual void Property(const char* name, UUID& value) override;
+	
 
-		//Const versions for primitives (for read-only properties)
-		virtual void Property(const char* name, const float& value) override;	
-		virtual void Property(const char* name, const bool& value) override;
-		virtual void Property(const char* name, const std::string& value) override;
-		virtual void Property(const char* name, const uint64_t& value) override;
-		virtual void Property(const char* name, const UUID& value) override;
-		virtual void Property(const char* name, const std::vector<UUID>& container) override;
-		virtual void Property(const char* name, const uint32_t& value)  override;
-		virtual void Property(const char* name, const int32_t& value)  override;
-		
-		// Complex Axel types (Agnostic)
-		virtual void Property(const char* name, Vec3& value) override;
-		virtual void Property(const char* name, Vec2& value) override;
-		virtual void Property(const char* name, Vec4& value) override;
 
-		//Const version for complex types
-		virtual void Property(const char* name, const Vec2& value) override;
-		virtual void Property(const char* name, const Vec3& value) override;
-		virtual void Property(const char* name, const Vec4& value) override;
-		
+		virtual void AssetProperty(const char* name, UUID& value) {};
+
 		// Structure handling
 		virtual bool BeginStruct(const char* name) override;
 		virtual void EndStruct() override;
 
 		// Collection handling (e.g., arrays, vectors)
 		virtual bool BeginCollection(const char* name, uint32_t& size) override;
+		virtual bool HasNext() override;
 		virtual void NextItem()  override;
 		virtual void EndCollection()  override;
 
 		// Binary blob (for raw data, e.g., texture bytes)
-		virtual void BinaryBlob(const char* name, void* data, size_t size) override;
+		virtual void Binary(
+			const char* name,
+			std::span<std::byte> data
+		) override;
+
+
+		template<typename T>
+		void Property(const char* name, T& value);
 
 	private:
 		ArchiveModeOptions m_Mode;
 		struct YAMLData;
-		YAMLData* m_Data;
-	
+		YAMLData* m_Data;	
 	};
 }
 

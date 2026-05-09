@@ -1,7 +1,7 @@
 #include "axelpch.h"
 #include "VulkanShader.h"
 #include "VulkanDevice.h"
-#include <core/Utils.h>
+#include "VulkanUtils.h"
 #include <fstream>
 #include <memory>
 #include <spirv_refl/spirv_reflect.h>
@@ -16,12 +16,13 @@ std::vector<uint32_t> ReadSPIRVFile(const std::string& filepath) {
     return buffer;
 }
 
-Axel::ShaderResourceType MapType(SpvReflectDescriptorType type) {
+Axel::DescriptorType MapType(SpvReflectDescriptorType type) {
     switch (type) {
-    case SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER:         return Axel::ShaderResourceType::UniformBuffer;
-    case SPV_REFLECT_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER: return Axel::ShaderResourceType::CombinedImageSampler;
-    case SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_BUFFER:        return Axel::ShaderResourceType::StorageBuffer;
-    default: return  Axel::ShaderResourceType::None;
+    case SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER:         return Axel::DescriptorType::UniformBuffer;
+    case SPV_REFLECT_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER: return Axel::DescriptorType::ImageSampler;
+    case SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_BUFFER:        return Axel::DescriptorType::StorageBuffer;
+    case SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_IMAGE:        return Axel::DescriptorType::StorageImage;
+    default: return  Axel::DescriptorType::None;
     }
 }
 
@@ -109,53 +110,44 @@ void Axel::VulkanShader::Reflect(const std::vector<uint32_t>& spirvCode, ShaderS
     SpvReflectShaderModule module;
     SpvReflectResult result = spvReflectCreateShaderModule(spirvCode.size() * 4, spirvCode.data(), &module);
 
-    // 1. Get all Descriptor Sets
     uint32_t count = 0;
     spvReflectEnumerateDescriptorSets(&module, &count, nullptr);
     std::vector<SpvReflectDescriptorSet*> sets(count);
     spvReflectEnumerateDescriptorSets(&module, &count, sets.data());
-    
-    // 2. Loop through every set and binding found in the SPV
+
     for (auto* set : sets) {
         for (uint32_t i = 0; i < set->binding_count; ++i) {
             auto* binding = set->bindings[i];
 
-            ShaderResource resource{};
+            // 1. Check if resource exists (stage merging)
+            if (m_Resources[binding->set].count(binding->binding)) {
+                m_Resources[binding->set][binding->binding].Stage |= stage;
+                continue;
+            }
+
+            // 2. Setup basic resource info
+            DescriptorBinding resource{};
             resource.Name = binding->name;
-            resource.Set = binding->set;
             resource.Binding = binding->binding;
             resource.Stage = stage;
-			resource.Count = binding->array.dims_count > 0 ? binding->array.dims[0] : 1; // Handle arrays of resources
-
-            // Map SPIRV-Reflect types to Axel types
+            resource.Count = (binding->array.dims_count > 0) ? binding->array.dims[0] : 1;
             resource.Type = MapType(binding->descriptor_type);
 
-            if (resource.Type == ShaderResourceType::UniformBuffer)
+            // 3. Reflect internal members for Buffers (UBO/SSBO)
+            if (resource.Type == DescriptorType::UniformBuffer || resource.Type == DescriptorType::StorageBuffer) {
                 resource.Size = binding->block.size;
 
-            // In your reflection logic
-            if (resource.Type == ShaderResourceType::StorageBuffer && binding->block.size == 0) {
-                // 0 indicates a runtime array []. 
-                // We must use the full buffer size during the actual Write/Update call.
-                resource.Size = VK_WHOLE_SIZE;
-            }
-            else {
-                resource.Size = binding->block.size;
-            }
-
-            if (resource.Type == ShaderResourceType::UniformBuffer || resource.Type == ShaderResourceType::StorageBuffer) {
-                resource.Size = binding->block.size;
-
+                // Handle potential runtime arrays or naming prefixes
                 std::string prefix = "";
                 SpvReflectBlockVariable* rootBlock = &binding->block;
+
+                // If the root is a wrapper, drill down
                 if (rootBlock->member_count == 1 && rootBlock->members[0].type_description->op == SpvOpTypeRuntimeArray) {
-                    // Grab the name: e.g., "material"
                     prefix = std::string(rootBlock->members[0].name) + ".";
-                    // Drill down to the struct members inside the array
                     rootBlock = &rootBlock->members[0];
                 }
 
-                // Drill into the members of the struct
+                // Populate the Members vector for the Material Editor
                 for (uint32_t j = 0; j < rootBlock->member_count; ++j) {
                     auto& spvMember = rootBlock->members[j];
 
@@ -163,53 +155,29 @@ void Axel::VulkanShader::Reflect(const std::vector<uint32_t>& spirvCode, ShaderS
                     member.Name = prefix + spvMember.name;
                     member.Offset = spvMember.offset;
                     member.Size = spvMember.size;
-                    member.Type = MapMemberType(spvMember);
+                    member.Type = MapMemberType(spvMember); // Your existing mapping function
 
                     resource.Members.push_back(member);
                 }
-               
-                /*
-                for (uint32_t j = 0; j < binding->block.member_count; ++j) {
-                    auto& spvMember = binding->block.members[j];
-
-                    ShaderMember member;
-                    member.Name = spvMember.name;
-                    member.Offset = spvMember.offset;
-                    member.Size = spvMember.size;
-
-                    // You'll need a MapMemberType function to convert 
-                    // SpvReflectTypeFlags/numeric types to your PropertyType (Float, Vec4, etc)
-                    member.Type = MapMemberType(spvMember);
-
-                    resource.Members.push_back(member);
-                }
-                */
             }
 
-            // Store in a map: m_Resources[set_index][binding_index]
-            if (m_Resources[resource.Set].find(resource.Binding) != m_Resources[resource.Set].end()) {
-                m_Resources[resource.Set][resource.Binding].Stage |= stage;
-            }
-            else {
-                m_Resources[resource.Set][resource.Binding] = resource;
-            }
+            // 4. Store in the nested map
+            m_Resources[binding->set][binding->binding] = resource;
         }
     }
 
-    uint32_t pushConstantBlockCount = 0;
-    spvReflectEnumeratePushConstantBlocks(&module, &pushConstantBlockCount, nullptr);
+    // 5. Push Constants
+    uint32_t pushCount = 0;
+    spvReflectEnumeratePushConstantBlocks(&module, &pushCount, nullptr);
+    if (pushCount > 0) {
+        std::vector<SpvReflectBlockVariable*> blocks(pushCount);
+        spvReflectEnumeratePushConstantBlocks(&module, &pushCount, blocks.data());
 
-    if (pushConstantBlockCount > 0) {
-        std::vector<SpvReflectBlockVariable*> pushBlocks(pushConstantBlockCount);
-        spvReflectEnumeratePushConstantBlocks(&module, &pushConstantBlockCount, pushBlocks.data());
-
-        for (auto* block : pushBlocks) {
+        for (auto* block : blocks) {
             PushConstantRange range;
             range.Offset = block->offset;
             range.Size = block->size;
-            // Map the SPIRV-Reflect stage to your Axel stage
-            range.Stages = SpvToAxelStage(module.shader_stage);
-
+            range.Stages = stage;
             m_PushConstantRanges.push_back(range);
         }
     }
@@ -229,7 +197,6 @@ void  Axel::VulkanShader::ReflectVertexLayout(const std::vector<uint32_t>& code)
     std::vector<BufferElement> elements;
     for (auto* input : inputs) {
         if (input->built_in != -1) continue;
-
         // Use your updated BufferElement with Location
         elements.push_back({
             SpirvToAxelType(input->format),

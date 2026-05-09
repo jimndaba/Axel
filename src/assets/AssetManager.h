@@ -6,9 +6,13 @@
 #include "AssetRegister.h"
 #include <rendering/Shader.h>
 #include <rendering/Texture.h>
+#include <scene/Scene.h>
 #include <rendering/MaterialTemplate.h>
 #include "Loaders/TextureLoader.h"
-#include <rendering/backends/GraphicsDevice.h>
+#include "Loaders/Sceneloader.h"
+#include <rendering/GraphicsDevice.h>
+#include <core/Reflection.h>
+
 
 namespace Axel
 {
@@ -23,9 +27,20 @@ namespace Axel
         // Called on Engine Init
         void Initialize(const std::string& projectFile);
 
+		static void Shutdown() { 
+            s_Instance->m_Registry.Clear();
+            s_Instance->m_LoadedAssets.clear();
+        }
+	
+        static void Clear() { 
+            s_Instance->m_Registry.Clear();
+            s_Instance->m_LoadedAssets.clear();
+            AXLOG_TRACE("Asset Register Cleared");
+        }
         static void RegisterAsset(AssetMetadata& meta);
+        static void RegisterAsset(AssetMetadata& meta,const Ref<IAsset>& asset);
 
-        
+        static AssetMetadata GetAssetMetadata(UUID id) { return s_Instance->m_Registry.GetMetadata(id); }
 
         template<typename T>
         static Ref<T> GetAsset(UUID id) {
@@ -41,10 +56,21 @@ namespace Axel
         {
             s_Instance->RegisterAssetInternal<T>(asset);
         }
-        static void SaveRegistry(const std::string& path);
-		static void LoadRegistry(const std::string& path);
+
+        static UUID GetAssetIDByName(const std::string& name);
+
+        static void SetAssetFilePath(const std::string& path) { s_Instance->SetAssetFilePathInternal(path); }
+        static void SaveRegistry();
+		static void LoadRegistry();
 
         AssetRegister& GetRegister() { return m_Registry; }
+
+        static bool HasAsset(const std::string& name);
+        static bool HasAsset(UUID id);
+
+        static std::string& GetAssetFolderPath();
+        
+        static std::string GetMaterialsFileExtension() {return ".axMaterial";}
      
     private:
 
@@ -75,6 +101,9 @@ namespace Axel
                 break;
             case AssetTypeOptions::MaterialTemplate:
                 //asset = std::static_pointer_cast<IAsset>(MaterialTemplateLoader::Load(metadata.Path));
+                break;
+            case AssetTypeOptions::Scene:
+                asset = std::static_pointer_cast<IAsset>(SceneLoader::LoadScene(metadata.Path));
                 break;
             }
 
@@ -128,9 +157,14 @@ namespace Axel
             m_Registry.AddAsset(id, data);
         }
 
+		void SetAssetFilePathInternal(const std::string& path) { m_CurrentAssetFile = path; }
+
+		std::string GetAssetFilePathInternal() const { return m_CurrentAssetFile; }
 
         AssetRegister m_Registry;
         std::unordered_map<UUID, Ref<IAsset>> m_LoadedAssets; // In-memory cache of loaded assets
+        std::string m_CurrentAssetFile;
+        std::string m_CurrentAssetFolder;
     };	
 }
 

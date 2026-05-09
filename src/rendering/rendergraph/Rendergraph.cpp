@@ -10,9 +10,7 @@ void Axel::RenderGraph::Execute(Ref<RenderCommandBuffer> cmd, const RendererData
         // will handle the actual Vulkan/DX12 transitions
         cmd->Begin();
 
-        // Route packets based on pass name or type
-        if (pass->Name == "MainForward")
-            pass->Execute(cmd, data.MeshPackets);
+        // Route packets based on pass name or type      
 
         cmd->End();
     }

@@ -3,36 +3,41 @@
 #include <assets/AssetManager.h>
 #include "GraphicsCore.h"
 #include "Pipeline.h"
-#include "backends/GraphicsContext.h"
+#include "GraphicsContext.h"
 #include "Shader.h"
+#include <rendering/MaterialInstance.h>
 
 Axel::MaterialTemplate::MaterialTemplate(UUID shader):
     ShaderID(shader)
 {
 }
 
-void Axel::MaterialTemplate::BuildPipeline(GraphicsContext* context)
+void Axel::MaterialTemplate::BuildPipeline(GraphicsContext* context, const Ref<RenderPass>& targetPass)
 {
-    // 1. Get Shader and Reflect
+    // 1. Get Shader and its reflected resources
     auto shader = AssetManager::GetAsset<Shader>(ShaderID);
-    auto allresources = shader->GetResources();
+    const auto& allresources = shader->GetResources();
 
+    // In your architecture, Set 1 is reserved for Material-specific data
     const uint32_t MaterialSetIndex = 1;
 
     m_Descriptors.clear();
 
-    if (allresources.find(MaterialSetIndex) != allresources.end())
+    // 2. Check if the Material Set exists in this shader
+    if (allresources.contains(MaterialSetIndex))
     {
-        auto& bindings = allresources.at(MaterialSetIndex);
+        const auto& bindings = allresources.at(MaterialSetIndex);
 
         for (auto& [bindingIndex, resource] : bindings)
         {
-            // We only want the UBO that holds scalar/vector properties.
-            // The texture sampler at binding 1 is handled separately.
-            if (resource.Type != ShaderResourceType::StorageBuffer)
+            // We are looking for the Uniform Buffer that contains our material properties
+            // (Note: Some shaders might use UniformBuffer, others StorageBuffer for materials)
+            if (resource.Type != DescriptorType::UniformBuffer &&
+                resource.Type != DescriptorType::StorageBuffer)
                 continue;
 
-            // Accept the MaterialData block regardless of exact name
+            // 3. Iterate through the members of the buffer block
+            // 'resource' is a DescriptorBinding which contains a 'Members' vector
             for (auto& member : resource.Members)
             {
                 PropertyDescriptor desc;
@@ -52,7 +57,7 @@ void Axel::MaterialTemplate::BuildPipeline(GraphicsContext* context)
     spec.BlendMode = BlendMode;
     spec.DepthTest = DepthTest;
     spec.DepthWrite = DepthWrite;
-    spec.TargetRenderPass = context->GetMainRenderPass();
+    spec.TargetRenderPass = targetPass;
     spec.Layout = shader->m_VertexLayout;
 
     // 3. Bake the Hardware Truth
@@ -63,12 +68,12 @@ void Axel::MaterialTemplate::BuildPipeline(GraphicsContext* context)
 void Axel::MaterialTemplate::Serialize(IArchive& ar)
 {
     ar.BeginStruct("MaterialTemplate");
-    ar.Property("ID", ID);
-    ar.Property("ShaderID", ShaderID);
-    ar.Property("CullMode", (int)CullMode);
-    ar.Property("BlendMode", (int)BlendMode);
-    ar.Property("DepthTest", DepthTest);
-    ar.Property("DepthWrite", DepthWrite);
+    VisitProperty("ID", ID,ar);
+    VisitProperty("ShaderID", ShaderID, ar);
+    VisitProperty("CullMode", (int&)CullMode, ar);
+    VisitProperty("BlendMode", (int&)BlendMode, ar);
+    VisitProperty("DepthTest", DepthTest, ar);
+    VisitProperty("DepthWrite", DepthWrite, ar);
 
     uint32_t size = m_Descriptors.size();
     ar.BeginCollection("PropertyDescriptors", size);
@@ -97,3 +102,22 @@ uint32_t Axel::MaterialTemplate::CalculateBufferSize()
     return paddedSize;
 }
 
+std::shared_ptr<Axel::MaterialInstance> Axel::MaterialTemplate::CreateInstance(const std::string& instanceName)
+{
+    // 1. Instantiate the object
+    auto instance = std::make_shared<MaterialInstance>(AssetID);
+
+    // 2. Optional: Initialize with Template Defaults
+    // This ensures that if a glTF doesn't provide a value, we don't have zeros
+    for (const auto& desc : m_Descriptors) {
+        // You could extend PropertyDescriptor to have a 'DefaultValue' field
+       //instance->Set(desc.Name, desc.);
+    }
+
+    return instance;
+}
+
+void Axel::MaterialTemplate::AddProperty(PropertyDescriptor type)
+{
+    m_Descriptors.push_back(type);
+}

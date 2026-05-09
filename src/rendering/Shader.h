@@ -6,6 +6,7 @@
 #include <core/Core.h>
 #include "GraphicsCore.h"
 #include <assets/AssetBase.h>
+#include "DescriptorSetLayout.h"
 #include "BufferLayout.h"
 
 namespace Axel
@@ -18,12 +19,10 @@ namespace Axel
 		uint32_t Offset;
 		uint32_t Size;
 	};
+	
+	using SetIndex = uint32_t;
+	using BindingIndex = uint32_t;
 
-	struct DescriptorSetLayoutData {
-		uint32_t Set;
-		std::vector<ShaderResource> Bindings;
-	};
-		
 	class GraphicsDevice;
 	class AX_API Shader : public IAsset
 	{

@@ -63,12 +63,12 @@ void Axel::MaterialInstance::PackData(uint8_t* destination)
 
 void Axel::MaterialInstance::Serialize(IArchive& archive)
 {
-    archive.Property("TemplateID", m_TemplateID);
+    VisitProperty("TemplateID", m_TemplateID,archive);
     for (auto& [name, value] : m_Properties)
     {
         std::visit([&](auto& arg)
             {
-                archive.Property(name.c_str(), arg);
+                VisitProperty(name.c_str(), arg,archive);
             }, value);
     }
 }

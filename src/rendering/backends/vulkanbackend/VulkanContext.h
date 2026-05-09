@@ -3,7 +3,7 @@
 #define VULKANCONTEXT_H
 
 #include "core/Core.h"
-#include "rendering/backends/GraphicsContext.h"
+#include "rendering/GraphicsContext.h"
 #include "vulkan/vulkan.h"
 #include "VulkanSwapchain.h"
 #include "VulkanCommanPool.h"
@@ -47,7 +47,7 @@ namespace Axel
 		uint32_t GetCurrentFrameIndex() const { return currentFrame; }
 		virtual Ref<Framebuffer> GetCurrentFramebuffer() override;
 		virtual Ref<RenderPass> GetMainRenderPass() override;
-		virtual Ref<RenderCommandBuffer> GetCurrentCommandBuffer() override;
+		virtual Ref<RenderCommandBuffer> GetCurrentCommandBuffer() const override;
 		
 	public:
 		virtual void BeginFrame() override;

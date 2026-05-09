@@ -1,9 +1,11 @@
 #include "axelpch.h"
 #include "VulkanContext.h"
 #include "GLFW/glfw3.h"
+
+
 #include <stdexcept>
-#include "../../../core/Logger.h"
-#include <rendering/backends/FrameBuffer.h>
+#include <core/Logger.h>
+#include <rendering/FrameBuffer.h>
 #include "VulkanCommandBuffer.h"
 #include "VulkanFramebuffer.h"
 
@@ -57,7 +59,11 @@ void Axel::VulkanContext::Init()
     // 4. INITIALIZE THE SWAPCHAIN
     // It needs the device to create handles, the surface to display on, 
     // and the window size to determine the resolution.
-    VkExtent2D extent = { m_WindowWidth, m_WindowHeight }; // TODO: Update window widgr height
+    int w, h;
+    glfwGetFramebufferSize(static_cast<GLFWwindow*>(m_WindowHandle), &w, &h);
+    m_WindowWidth = static_cast<uint32_t>(w);
+    m_WindowHeight = static_cast<uint32_t>(h);
+    VkExtent2D extent = { m_WindowWidth, m_WindowHeight }; 
     m_Swapchain = CreateScope<VulkanSwapchain>(*vulkanDevice, m_Surface, extent);
 
     CreateSyncObjects();
@@ -105,8 +111,7 @@ void Axel::VulkanContext::CreateFramebuffers()
         FramebufferSpecification spec;
 
         // 1. Define the "Recipe" (What the RenderPass expects)
-        spec.Attachments = { FramebufferTextureFormat::RGBA8 };
-
+      
         // 2. Provide the "Physical Memory" (The Swapchain View)
         spec.ExistingImages = { images[i] };
 
@@ -114,6 +119,7 @@ void Axel::VulkanContext::CreateFramebuffers()
         spec.RenderPass = m_MainRenderPass;
         spec.Width = m_Swapchain->GetExtent().width;
         spec.Height = m_Swapchain->GetExtent().height;
+        spec.Attachments = { TextureFormatOptions::RGBA_SRGB };
 
         // 3. This creates a VulkanFramebuffer wrapping that specific Swapchain Image
         m_SwapChainFramebuffers[i] = Framebuffer::Create(this,spec);
@@ -123,34 +129,42 @@ void Axel::VulkanContext::CreateFramebuffers()
 void Axel::VulkanContext::CreateDescriptorPool()
 {    
     auto device = std::static_pointer_cast<VulkanDevice>(m_Device)->GetLogicalDevice();
-    VkDescriptorPoolSize poolSizes[] = {
-        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 100 }, // Max 100 UBOs
-        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 100 } // Max 100 Textures
+    std::vector<VkDescriptorPoolSize> poolSizes = {
+        { VK_DESCRIPTOR_TYPE_SAMPLER, 1000 },
+        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000 },
+        { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000 },
+        { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000 },
+        { VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1000 },
+        { VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1000 },
+        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000 },
+        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000 },
+        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000 },
+        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000 },
+        { VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000 }
     };
 
     VkDescriptorPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-    poolInfo.poolSizeCount = 2;
-    poolInfo.pPoolSizes = poolSizes;
-    poolInfo.maxSets = 100; // Max 100 "Materials" or "Sets" total
+    poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
+    poolInfo.pPoolSizes = poolSizes.data();
+    poolInfo.maxSets = 1000; // Max 100 "Materials" or "Sets" total
 
     if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &m_DescriptorPool) != VK_SUCCESS) {
         AXLOG_ERROR("Failed to create Descriptor Pool!");
     }
 }
 
+
 void Axel::VulkanContext::CreateRenderPass()
 {
     RenderPassSpecification spec;
     spec.DebugName = "MainSwapchainPass";
-
-    // Map the swapchain format to your engine's ImageFormat enum
-    // Assuming you have a helper like VulkanImage::VulkanFormatToAxelFormat
-    spec.Format = ImageFormat::RGBA8;
+    spec.Formats = { TextureFormatOptions::RGBA_SRGB };
     spec.LoadOp = AttachmentLoadOp::Clear;   // This triggers the Blue Clear
     spec.StoreOp = AttachmentStoreOp::Store; // This saves the Blue Clear to show us
     spec.ClearColor = { 0.1f, 0.1f, 0.8f, 1.0f }; // Axel Blue
+    spec.SwapChainTarget = true;
     m_MainRenderPass = RenderPass::Create(this,spec);
 }
 
@@ -202,7 +216,7 @@ std::shared_ptr<Axel::RenderPass > Axel::VulkanContext::GetMainRenderPass()
     return m_MainRenderPass;
 }
 
-std::shared_ptr<Axel::RenderCommandBuffer> Axel::VulkanContext::GetCurrentCommandBuffer()
+std::shared_ptr<Axel::RenderCommandBuffer> Axel::VulkanContext::GetCurrentCommandBuffer() const
 {
     // 1. Safety check to ensure buffers exist
     AXEL_CORE_ASSERT(currentFrame < m_CommandBuffers.size(), "Frame index out of bounds!");
@@ -230,12 +244,8 @@ void Axel::VulkanContext::BeginFrame()
 
     auto commandBuffer = std::static_pointer_cast<VulkanCommandBuffer>(GetCurrentCommandBuffer());
     vkResetCommandBuffer(commandBuffer->GetHandle(), 0);
-
-    // 3. Start Recording
-    VkCommandBufferBeginInfo beginInfo{};
-    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-    vkBeginCommandBuffer(commandBuffer->GetHandle(), &beginInfo);
+    commandBuffer->Begin();
+    
 }
 
 void Axel::VulkanContext::EndFrame()
@@ -245,7 +255,7 @@ void Axel::VulkanContext::EndFrame()
     auto presentQueue = device->GetPresentQueue();
 
     // 1. Stop Recording
-    vkEndCommandBuffer(m_CommandBufferObjects[currentFrame]->GetHandle());
+    m_CommandBufferObjects[currentFrame]->End();
 
     // 2. Submit (Using the pointers we fixed earlier)
     VkSubmitInfo submitInfo{};

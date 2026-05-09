@@ -1,8 +1,8 @@
 #include "axelpch.h"
 #include "RenderPass.h"
-#include "../RenderAPI.h"
-#include "vulkanbackend/VulkanRenderPass.h"
-#include "vulkanbackend/VulkanDevice.h"
+#include "RenderAPI.h"
+#include "backends/vulkanbackend/VulkanRenderPass.h"
+#include "backends/vulkanbackend/VulkanDevice.h"
 #include "GraphicsContext.h"
 
 std::shared_ptr<Axel::RenderPass > Axel::RenderPass::Create(GraphicsContext* ctxt, const RenderPassSpecification& spec)

@@ -2,69 +2,75 @@
 #include "MaterialManager.h"
 #include <assets/AssetManager.h>
 #include "MaterialInstance.h"
+#include "DescriptorSet.h"
+#include "DescriptorSetLayout.h"
+#include "Renderer.h"
 
 Axel::MaterialManager::MaterialManager(GraphicsContext* ctxt):
     m_Context(ctxt)
 {
+   
+    {
+        std::vector<DescriptorBinding> bindings;
+        DescriptorBinding n;
+        n.Binding = 0;
+        n.Count = 1;
+        n.Name = "u_MaterialPool";
+        n.Type = DescriptorType::StorageBuffer;
+        n.Stage = ShaderStage::Fragment | ShaderStage::Vertex;
+        bindings.push_back(n);
+        m_MaterialTableLayout = DescriptorSetLayout::Create(m_Context, bindings);
+    }
 }
 
 void Axel::MaterialManager::RegisterMaterial(Ref<MaterialInstance> instance)
 {
     UUID id = instance->AssetID;
 
-    // 1. Prevent double-registration
     if (m_MaterialRegistry.find(id) != m_MaterialRegistry.end())
         return;
 
-    // 2. Fetch the template to know the byte size requirement
     auto mt = AssetManager::GetAsset<MaterialTemplate>(instance->GetTemplateID());
     if (!mt) {
-        AXLOG_ERROR("Failed to register material: Template not found!");
+        AXLOG_ERROR("Failed to register material: Template not found! {} ", instance->GetTemplateID().ToString());
         return;
     }
 
-    // 3. Store metadata
     MaterialMetadata meta;
     meta.Size = mt->CalculateBufferSize();
 
-    // Calculate offset based on current end of buffer (with alignment)
-    // std430 alignment usually requires 16-byte boundaries for structs
     uint32_t alignment = 16;
     uint32_t currentTotalSize = 0;
     for (const auto& [regId, regMeta] : m_MaterialRegistry) {
-        currentTotalSize += regMeta.Size;
-        // Pad to alignment if necessary
-        if (currentTotalSize % alignment != 0)
-            currentTotalSize += (alignment - (currentTotalSize % alignment));
+        currentTotalSize += (regMeta.Size + (alignment - 1)) & ~(alignment - 1);
     }
 
     meta.Offset = currentTotalSize;
-
-    // 4. Update Registry and Tracking list
     m_MaterialRegistry[id] = meta;
     m_ActiveInstances.push_back(instance);
 
-    m_NeedsReallocation = true; // Signal that the GPU SSBO needs to grow
+    m_NeedsReallocation = true;
     m_IsDirty = true;
 }
 
 void Axel::MaterialManager::Update()
 {
-    // If nothing changed, don't waste time re-packing or re-uploading
     if (!m_IsDirty && !m_NeedsReallocation) return;
 
-    // 1. Calculate total size (using a fixed stride for simple indexing)
+    // 1. Calculate total size
     uint32_t totalSize = 0;
     for (auto& instance : m_ActiveInstances) {
         auto mt = AssetManager::GetAsset<MaterialTemplate>(instance->GetTemplateID());
-        totalSize += mt->CalculateBufferSize();
+        uint32_t size = mt->CalculateBufferSize();
+        totalSize += (size + 15) & ~15;
     }
 
     // 2. Buffer Management
+    bool bufferResized = false;
     if (m_CPUBuffer.size() < totalSize || !m_MaterialTableBuffer) {
         m_CPUBuffer.resize(totalSize);
-        // Create SSBO at Set 1, Binding 0
         m_MaterialTableBuffer = ShaderStorageBuffer::Create(m_Context, totalSize, 0);
+        bufferResized = true;
     }
 
     // 3. Packing & Indexing
@@ -73,17 +79,24 @@ void Axel::MaterialManager::Update()
         auto& instance = m_ActiveInstances[i];
         auto mt = AssetManager::GetAsset<MaterialTemplate>(instance->GetTemplateID());
         uint32_t size = mt->CalculateBufferSize();
+        uint32_t alignedSize = (size + 15) & ~15;
 
-        // Pack the variant data into the staging buffer
-        uint32_t alignedSize = (size + 15) & ~15; // Round up to 16
-        instance->PackData(m_CPUBuffer.data() + currentOffset);       
+        instance->PackData(m_CPUBuffer.data() + currentOffset);
+
+        m_MaterialRegistry[instance->AssetID] = { currentOffset, size, i };
         currentOffset += alignedSize;
-        // Map the UUID to the specific offset and size
-        // This 'i' becomes your rc.u_MaterialIndex!
-        m_MaterialRegistry[instance->AssetID] = { currentOffset, size,i };
+    }
+        
+    // Synchronize Material Data (Set 1)
+    if (bufferResized || !m_MaterialDescriptorSet) {
+
+        m_MaterialDescriptorSet = DescriptorSet::Create(m_Context, m_MaterialTableLayout);
+        m_MaterialDescriptorSet->Write("u_MaterialPool", m_MaterialTableBuffer);
+        m_MaterialDescriptorSet->Update();
+        
     }
 
-    // 4. Synchronization
+    // 5. GPU Upload
     m_MaterialTableBuffer->SetData(m_CPUBuffer.data(), totalSize);
 
     m_IsDirty = false;
@@ -93,8 +106,16 @@ void Axel::MaterialManager::Update()
 uint32_t Axel::MaterialManager::GetMaterialIndex(UUID id) {
     auto it = m_MaterialRegistry.find(id);
     if (it != m_MaterialRegistry.end())
-    {
-        return it->second.Index; // No division, no guesswork
-    }
+        return it->second.Index;
     return 0;
+}
+
+Axel::UUID Axel::MaterialManager::GetMaterialTemplateID(uint32_t materialIndex)
+{
+    if (materialIndex < m_ActiveInstances.size()) {
+        auto& instance = m_ActiveInstances[materialIndex];
+        if (instance) return instance->GetTemplateID();
+    }
+    AXLOG_WARN("MaterialManager: Invalid material index {0}", materialIndex);
+    return UUID(0);
 }

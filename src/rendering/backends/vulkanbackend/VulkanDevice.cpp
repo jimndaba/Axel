@@ -6,12 +6,15 @@
 #include <stdexcept>
 #include <set>
 
+#include <rendering/GraphicsCore.h>
 #include <rendering/Texture.h>
 #include "VulkanTexture2D.h"
 #include "VulkanBuffer.h"
 #include "VkVertexBuffer.h"
 #include "VkIndexBuffer.h"
 #include "VulkanDescriptorSet.h"
+#include "VulkanUtils.h"
+
 
 
 const std::vector<const char*> deviceExtensions = {
@@ -139,6 +142,14 @@ void Axel::VulkanDevice::Init()
     vkEnumeratePhysicalDevices(instance, &deviceCount, m_Devices.data());
 
     vkGetPhysicalDeviceProperties(m_PhysicalDevice, &Properties);
+
+    VmaAllocatorCreateInfo allocatorInfo = {};
+    allocatorInfo.vulkanApiVersion = VK_API_VERSION_1_3;
+    allocatorInfo.physicalDevice = m_PhysicalDevice;
+    allocatorInfo.device = m_LogicalDevice;
+    allocatorInfo.instance = instance;
+
+    vmaCreateAllocator(&allocatorInfo, &m_VmaAllocator);
 }
 
 void Axel::VulkanDevice::Shutdown()
@@ -179,11 +190,14 @@ void Axel::VulkanDevice::Shutdown()
         m_TransferCommandPool = VK_NULL_HANDLE;
     }
 
+    vmaDestroyAllocator(m_VmaAllocator);
+
     // Cleanup logical device
     if (m_LogicalDevice != VK_NULL_HANDLE) {
         vkDestroyDevice(m_LogicalDevice, nullptr);
         m_LogicalDevice = VK_NULL_HANDLE;
     }
+
 
 
     AXLOG_INFO("VulkanDevice shutdown complete");
@@ -291,14 +305,14 @@ bool Axel::VulkanDevice::checkValidationLayerSupport()
     return true;
 }
 
-void Axel::VulkanDevice::CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
+void Axel::VulkanDevice::CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size, VkDeviceSize dstOffset) {
     // 1. Open a temporary "One-Time" command buffer
     VkCommandBuffer commandBuffer = BeginSingleTimeCommands();
 
     // 2. Define the copy region (from offset 0 to 'size')
     VkBufferCopy copyRegion{};
     copyRegion.srcOffset = 0; // Optional: start at beginning of source
-    copyRegion.dstOffset = 0; // Optional: start at beginning of destination
+    copyRegion.dstOffset = dstOffset; // Optional: start at beginning of destination
     copyRegion.size = size;
 
     // 3. Record the transfer command
@@ -433,12 +447,25 @@ void Axel::VulkanDevice::ReleaseStagingBuffer(StagingBuffer& buffer)
 
 VkImageView Axel::VulkanDevice::CreateImageView(VkImage image, VkFormat format)
 {
+    VkImageAspectFlags aspectMask;
+    if (IsVkDepthFormat(format))
+    {
+        aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+
+        if (HasVKStencil(format))
+            aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+    }
+    else
+    {
+        aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    }
+
     VkImageViewCreateInfo viewInfo{};
     viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
     viewInfo.image = image;
     viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
     viewInfo.format = format;
-    viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    viewInfo.subresourceRange.aspectMask = aspectMask;
     viewInfo.subresourceRange.baseMipLevel = 0;
     viewInfo.subresourceRange.levelCount = 1;
     viewInfo.subresourceRange.baseArrayLayer = 0;
@@ -452,15 +479,36 @@ VkImageView Axel::VulkanDevice::CreateImageView(VkImage image, VkFormat format)
     return imageView;
 }
 
-std::shared_ptr<Axel::DescriptorSet> Axel::VulkanDevice::GetTextureDescriptor(UUID& outid, Ref<Pipeline>& pipeline, uint32_t index)
+VkFormat Axel::VulkanDevice::FindDepthFormat()
 {
-    auto it = m_TextureDescriptorSets.find(outid);
+    std::vector<VkFormat> candidates = {
+        VK_FORMAT_D32_SFLOAT,
+        VK_FORMAT_D32_SFLOAT_S8_UINT,
+        VK_FORMAT_D24_UNORM_S8_UINT
+    };
+
+    for (VkFormat format : candidates)
+    {
+        VkFormatProperties props;
+        vkGetPhysicalDeviceFormatProperties(m_PhysicalDevice, format, &props);
+
+        if (props.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT)
+            return format;
+    }
+
+    throw std::runtime_error("No supported depth format found!");
+}
+
+std::shared_ptr<Axel::DescriptorSet> Axel::VulkanDevice::GetTextureDescriptor(const UUID& id, Ref<DescriptorSetLayout> layout)
+{
+    auto it = m_TextureDescriptorSets.find(id);
     if (it != m_TextureDescriptorSets.end())
     {
-        return m_TextureDescriptorSets[outid];
+        return m_TextureDescriptorSets[id];
     }
-    m_TextureDescriptorSets[outid] = DescriptorSet::Create(m_Context, pipeline, index);
-    return m_TextureDescriptorSets[outid];
+
+    m_TextureDescriptorSets[id] = DescriptorSet::Create(m_Context, layout);
+    return m_TextureDescriptorSets[id];
 }
 
 void Axel::VulkanDevice::WaitIdle()
@@ -487,7 +535,12 @@ std::shared_ptr<Axel::IndexBuffer> Axel::VulkanDevice::CreateIndexBuffer(uint32_
 
 std::shared_ptr<Axel::Texture2D> Axel::VulkanDevice::CreateTexture(uint32_t width, uint32_t height, const unsigned char* data)
 {
-    return CreateRef<VulkanTexture2D>(width, height, data);
+    TextureCreationInfo info;
+    info.Width = width;
+    info.Height = height;
+    info.Data = data;
+
+    return CreateRef<VulkanTexture2D>(info);
 }
 
 bool Axel::VulkanDevice::UploadTexture(Ref<Texture2D> texture)
@@ -551,11 +604,6 @@ bool Axel::VulkanDevice::UploadTexture(Ref<Texture2D> texture)
 
     ReleaseStagingBuffer(stagingBuffer);
     return true;
-}
-
-bool Axel::VulkanDevice::UploadMesh(Ref<Mesh> mesh)
-{
-    return false;
 }
 
 bool Axel::VulkanDevice::UploadBuffer(Ref<Buffer> buffer)

@@ -4,10 +4,15 @@
 
 
 #include "vulkan/vulkan.h"
+#include <vma/vk_mem_alloc.h>
+
 #include <optional>
-#include "rendering/backends/GraphicsDevice.h"
+#include <rendering/GraphicsDevice.h>
 #include <core/UUID.h>
+#include <core/Core.h>
 #include <shared_mutex>
+
+
 
 namespace Axel
 {
@@ -15,7 +20,7 @@ namespace Axel
     class VulkanPipeline;
    
 
-    class VulkanDevice : public GraphicsDevice {
+    class AX_API VulkanDevice : public GraphicsDevice {
     public:
         struct QueueFamilyIndices {
             std::optional<uint32_t> GraphicsFamily;
@@ -30,6 +35,7 @@ namespace Axel
             VkDeviceMemory Memory = VK_NULL_HANDLE;
             size_t Size = 0;
             bool IsInUse = false;
+            bool IsMapped = false; // ← add this
         };
 
 
@@ -49,8 +55,7 @@ namespace Axel
         // =========================
         // GPU Upload (GraphicsDevice interface)
         // =========================
-        virtual bool UploadTexture(Ref<Texture2D> texture) override;
-        virtual bool UploadMesh(Ref<Mesh> mesh) override;
+        virtual bool UploadTexture(Ref<Texture2D> texture) override;       
         virtual bool UploadBuffer(Ref<Buffer> buffer) override;
         virtual void UnloadTexture(UUID textureID) override;
         virtual bool IsTextureResident(UUID textureID) const override;
@@ -74,7 +79,7 @@ namespace Axel
 
         void TransitionImageLayout(VkCommandBuffer cb, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout);
         void CopyBufferToImage(VkCommandBuffer cb, VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
-        void CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
+        void CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size, VkDeviceSize dstOffset = 0);
         VkCommandBuffer BeginSingleTimeCommands();
         void EndSingleTimeCommands(VkCommandBuffer commandBuffer);
 
@@ -86,13 +91,18 @@ namespace Axel
      
         VkPhysicalDeviceProperties Properties;
 
+        VkFormat FindDepthFormat();
+
         void CreateBufferDescriptorSet(UUID& outid,const Ref<Pipeline>& pipeline, uint32_t index);
-        virtual Ref<DescriptorSet> GetTextureDescriptor(UUID& outid, Ref<Pipeline>& pipeline, uint32_t index) override;
+        virtual Ref<DescriptorSet> GetTextureDescriptor(const UUID& id, Ref<DescriptorSetLayout> layout) override;
+        VmaAllocator GetAllocator() const { return m_VmaAllocator; }
+        
     private:
         VkPhysicalDevice m_PhysicalDevice;
         VkDevice m_LogicalDevice;
         VkQueue m_GraphicsQueue;
         VkQueue m_PresentQueue;
+        VmaAllocator m_VmaAllocator;
         VkCommandPool m_TransferCommandPool = VK_NULL_HANDLE;  // For staging buffer uploads
         QueueFamilyIndices m_Queues;
 

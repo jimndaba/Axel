@@ -3,6 +3,7 @@
 #define RENDERGRAPHTYPES_H
 
 #include "core/Core.h"
+#include <rendering/GraphicsCore.h>
 
 namespace Axel
 {
@@ -14,7 +15,7 @@ namespace Axel
 
     struct RenderGraphTextureSpec {
         uint32_t Width, Height;
-        ImageFormat Format;  // Clean!
+        TextureFormatOptions Format;  // Clean!
         AttachmentType Type;
     };
 

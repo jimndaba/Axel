@@ -2,7 +2,7 @@
 #include "Application.h"
 #include "Timer.h"
 
-#include "rendering/backends/GraphicsContext.h"
+#include "rendering/GraphicsContext.h"
 #include "rendering/Renderer.h"
 #include <rendering/MaterialManager.h>
 
@@ -35,6 +35,7 @@ void Axel::Application::Run()
 	AxTimer timer;
 	OnStart();
 
+	OnLoad();
 	while (m_Running)
 	{
 		float dt = timer.GetDeltaTime();
@@ -106,6 +107,10 @@ void Axel::Application::OnStart()
 	
 }
 
+void Axel::Application::OnLoad()
+{
+}
+
 void Axel::Application::OnUpdate(float deltaTime)
 {
 
@@ -120,17 +125,18 @@ void Axel::Application::Init()
 
 	// 2. Create the Graphics Context (VulkanContext)
 	mContext = GraphicsContext::Create(m_Platform->GetNativeWindow());
+	
+	
 	mContext->Init();
-
-	m_AssetaManager = std::make_unique<AssetManager>(mContext->GetDevice().get());	
-
+	m_AssetaManager = std::make_unique<AssetManager>(mContext->GetDevice().get());
 	m_MaterialManager = std::make_unique<MaterialManager>(mContext.get());
-
+	Renderer::Init(mContext.get(), m_MaterialManager.get());	
+	
 	Axel::AssetMetadata SpriteMeta{};
 	SpriteMeta.Name = "SpriteShader";
 	SpriteMeta.AssetType = Axel::AssetTypeOptions::Shader;
 	SpriteMeta.Path = "Assets/Shaders/Quad";
 	Axel::AssetManager::RegisterAsset(SpriteMeta);
 
-	Renderer::Init(mContext.get(), m_MaterialManager.get());
+	
 }

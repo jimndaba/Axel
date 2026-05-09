@@ -10,6 +10,8 @@ namespace Axel
 {
     class MaterialInstance;
     class GraphicsContext;
+    class DescriptorSet;
+    class DescriptorSetLayout;
 
 	struct MaterialMetadata {
 		uint32_t Offset; // Offset in the global GPU buffer
@@ -31,9 +33,11 @@ namespace Axel
         void Update();
 
         uint32_t GetMaterialIndex(UUID id);
-
+        UUID GetMaterialTemplateID(uint32_t materialIndex);
+       
         // Used by the Renderer to bind the global material table
         Ref<ShaderStorageBuffer> GetMaterialBuffer() const { return m_MaterialTableBuffer; }
+        Ref<DescriptorSet> GetMaterialDescriptorSet() const { return m_MaterialDescriptorSet; }
 
     private:
         GraphicsContext* m_Context;
@@ -43,10 +47,13 @@ namespace Axel
         std::vector<Ref<MaterialInstance>> m_ActiveInstances;
 
         Ref<ShaderStorageBuffer> m_MaterialTableBuffer;
+        Ref<DescriptorSet> m_MaterialDescriptorSet; // The "handle" for Slot 1
+        Ref<DescriptorSetLayout> m_MaterialTableLayout;
+
         std::vector<uint8_t> m_CPUBuffer; // Local "staging" memory
 
         bool m_NeedsReallocation = false;
-        bool m_IsDirty = true;
+        bool m_IsDirty = false;
 
 	};
 

@@ -1,6 +1,6 @@
 #include "axelpch.h"
 #include "VulkanCommanPool.h"
-#include "../../../core/Logger.h"
+#include <core/Logger.h>
 
 Axel::VulkanCommandPool::VulkanCommandPool(VulkanDevice& device):
 	m_Device(device)

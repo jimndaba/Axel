@@ -2,9 +2,8 @@
 #include "VulkanCommandBuffer.h"
 #include "VulkanRenderPass.h"
 #include "VulkanFramebuffer.h"
-
-#include "VulkanContext.h"+
-#include "../../../core/Logger.h"
+#include "VulkanContext.h"
+#include <core/Logger.h>
 
 Axel::VulkanCommandBuffer::VulkanCommandBuffer(VulkanDevice& device, VkCommandPool pool):m_Device(device)
 {
@@ -53,6 +52,19 @@ void Axel::VulkanCommandBuffer::BeginRenderPass(Ref<RenderPass> renderPass, Ref<
 {
     auto vRenderPass = std::static_pointer_cast<VulkanRenderPass>(renderPass);
     auto vFramebuffer = std::static_pointer_cast<VulkanFramebuffer>(framebuffer);
+    auto spec = vRenderPass->GetSpecification();
+    // Add Color Clear
+    std::vector<VkClearValue> clearValues;
+    VkClearValue colorClear = { { spec.ClearColor.r, spec.ClearColor.g, spec.ClearColor.b, spec.ClearColor.a } };
+    clearValues.push_back(colorClear);
+
+    // Add Depth Clear if this pass has a depth attachment
+    if (spec.HasDepthStencil) // You should track this in your RenderPass class
+    {
+        VkClearValue depthClear;
+        depthClear.depthStencil = { 1.0f, 0 };
+        clearValues.push_back(depthClear);
+    }
 
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -60,11 +72,8 @@ void Axel::VulkanCommandBuffer::BeginRenderPass(Ref<RenderPass> renderPass, Ref<
     renderPassInfo.framebuffer = vFramebuffer->GetHandle();
     renderPassInfo.renderArea.offset = { 0, 0 };
     renderPassInfo.renderArea.extent = { vFramebuffer->GetSpecification().Width, vFramebuffer->GetSpecification().Height };
-
-    // This is the color for the "Blue Screen"
-    VkClearValue clearValue = { {{ 0.1f, 0.1f, 0.8f, 1.0f }} };
-    renderPassInfo.clearValueCount = 1;
-    renderPassInfo.pClearValues = &clearValue;
+    renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+    renderPassInfo.pClearValues = clearValues.data();
 
     vkCmdBeginRenderPass(m_ActiveBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 }

@@ -2,8 +2,11 @@
 #include "VulkanBuffer.h"
 #include "VulkanDevice.h"
 
+#define VMA_IMPLEMENTATION
+#include <vma/vk_mem_alloc.h>
+
 Axel::VulkanBuffer::VulkanBuffer(VulkanDevice& device, uint32_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties):
-	m_Device(device), Size(size), m_Buffer(VK_NULL_HANDLE), m_BufferMemory(VK_NULL_HANDLE)
+	m_Device(device), Size(size), m_Buffer(VK_NULL_HANDLE)
 {
     VkDevice logicalDevice = device.GetLogicalDevice();
 
@@ -13,18 +16,14 @@ Axel::VulkanBuffer::VulkanBuffer(VulkanDevice& device, uint32_t size, VkBufferUs
     bufferInfo.usage = usage;
     bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-    vkCreateBuffer(logicalDevice, &bufferInfo, nullptr, &m_Buffer);
+    VmaAllocationCreateInfo allocInfo = {};
+    allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
+    allocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT |
+        // Flag 2: Tell VMA to keep it mapped so we don't have to call vmaMapMemory
+        VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
-    VkMemoryRequirements memRequirements;
-    vkGetBufferMemoryRequirements(logicalDevice, m_Buffer, &memRequirements);
-
-    VkMemoryAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    allocInfo.allocationSize = memRequirements.size;
-    allocInfo.memoryTypeIndex = device.FindMemoryType(memRequirements.memoryTypeBits, properties);
-
-    vkAllocateMemory(logicalDevice, &allocInfo, nullptr, &m_BufferMemory);
-    vkBindBufferMemory(logicalDevice, m_Buffer, m_BufferMemory, 0);
+    vmaCreateBuffer(device.GetAllocator(), &bufferInfo, &allocInfo,
+        &m_Buffer, &m_BufferAllocation,&m_AllocationInfo);
 }
 
 Axel::VulkanBuffer::~VulkanBuffer()
@@ -36,7 +35,6 @@ void Axel::VulkanBuffer::Destroy(VkDevice device)
     if (m_Buffer)
     {	
         vkDeviceWaitIdle(device);
-        vkFreeMemory(device, m_BufferMemory, nullptr);
 		vkDestroyBuffer(device, m_Buffer, nullptr);
     }
 }

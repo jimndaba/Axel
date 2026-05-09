@@ -55,7 +55,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>AX_BUILD_ENGINE;AX_DEBUG;YAML_CPP_STATIC_DEFINE</PreprocessorDefinitions>
+      <PreprocessorDefinitions>AX_BUILD_ENGINE;AX_DEBUG;YAML_CPP_STATIC_DEFINE;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <PrecompiledHeaderFile>axelpch.h</PrecompiledHeaderFile>
@@ -98,12 +98,17 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="src\assets\Loaders\MeshLoader.h" />
+    <ClInclude Include="src\assets\Loaders\SceneLoader.h" />
     <ClInclude Include="src\assets\Loaders\TextureLoader.h" />
     <ClInclude Include="src\assets\Serialisation\Archive.h" />
     <ClInclude Include="src\assets\AssetBase.h" />
     <ClInclude Include="src\assets\AssetManager.h" />
     <ClInclude Include="src\assets\AssetRegister.h" />
     <ClInclude Include="src\assets\ISerialisable.h" />
+    <ClInclude Include="src\assets\Serialisation\JsonLoadArchive.h" />
+    <ClInclude Include="src\assets\Serialisation\JsonSaveArchive.h" />
+    <ClInclude Include="src\assets\Serialisation\JsonUtils.h" />
     <ClInclude Include="src\assets\Serialisation\YAMLArchive.h" />
     <ClInclude Include="src\axelpch.h" />
     <ClInclude Include="src\core\Application.h" />
@@ -112,15 +117,19 @@
     <ClInclude Include="src\core\GameInterface.h" />
     <ClInclude Include="src\core\InputState.h" />
     <ClInclude Include="src\core\Logger.h" />
+    <ClInclude Include="src\core\Reflection.h" />
     <ClInclude Include="src\core\Timer.h" />
-    <ClInclude Include="src\core\Utils.h" />
     <ClInclude Include="src\core\UUID.h" />
     <ClInclude Include="src\events\EventBus.h" />
+    <ClInclude Include="src\input\Input.h" />
+    <ClInclude Include="src\input\KeyCodes.h" />
     <ClInclude Include="src\math\Math.h" />
     <ClInclude Include="src\platform\Platform.h" />
-    <ClInclude Include="src\rendering\backends\FrameBuffer.h" />
-    <ClInclude Include="src\rendering\backends\GraphicsContext.h" />
-    <ClInclude Include="src\rendering\backends\GraphicsDevice.h" />
+    <ClInclude Include="src\rendering\backends\vulkanbackend\VulkanDescriptorSetLayout.h" />
+    <ClInclude Include="src\rendering\DescriptorSetLayout.h" />
+    <ClInclude Include="src\rendering\FrameBuffer.h" />
+    <ClInclude Include="src\rendering\GraphicsContext.h" />
+    <ClInclude Include="src\rendering\GraphicsDevice.h" />
     <ClInclude Include="src\rendering\backends\vulkanbackend\VkIndexBuffer.h" />
     <ClInclude Include="src\rendering\backends\vulkanbackend\VkVertexBuffer.h" />
     <ClInclude Include="src\rendering\backends\vulkanbackend\VulkanBuffer.h" />
@@ -130,6 +139,7 @@
     <ClInclude Include="src\rendering\backends\vulkanbackend\VulkanDescriptorSet.h" />
     <ClInclude Include="src\rendering\backends\vulkanbackend\VulkanDevice.h" />
     <ClInclude Include="src\rendering\backends\vulkanbackend\VulkanFramebuffer.h" />
+    <ClInclude Include="src\rendering\backends\vulkanbackend\VulkanGeometryPool.h" />
     <ClInclude Include="src\rendering\backends\vulkanbackend\VulkanRenderAPI.h" />
     <ClInclude Include="src\rendering\backends\vulkanbackend\VulkanRenderPass.h" />
     <ClInclude Include="src\rendering\backends\vulkanbackend\VulkanShader.h" />
@@ -138,15 +148,20 @@
     <ClInclude Include="src\rendering\backends\vulkanbackend\VulkanPipeline.h" />
     <ClInclude Include="src\rendering\backends\vulkanbackend\VulkanTexture2D.h" />
     <ClInclude Include="src\rendering\backends\vulkanbackend\VulkanUniformBuffer.h" />
+    <ClInclude Include="src\rendering\backends\vulkanbackend\VulkanUtils.h" />
     <ClInclude Include="src\rendering\Buffers.h" />
     <ClInclude Include="src\rendering\BufferLayout.h" />
     <ClInclude Include="src\rendering\DescriptorSet.h" />
     <ClInclude Include="src\rendering\GraphicsCore.h" />
+    <ClInclude Include="src\rendering\IGeometryPool.h" />
+    <ClInclude Include="src\rendering\IRenderFeature.h" />
+    <ClInclude Include="src\rendering\render system\IRenderSystem.h" />
     <ClInclude Include="src\rendering\MaterialInstance.h" />
     <ClInclude Include="src\rendering\MaterialManager.h" />
     <ClInclude Include="src\rendering\MaterialTemplate.h" />
     <ClInclude Include="src\rendering\Mesh.h" />
     <ClInclude Include="src\rendering\Pipeline.h" />
+    <ClInclude Include="src\rendering\render system\MeshRenderSystem.h" />
     <ClInclude Include="src\rendering\RenderAPI.h" />
     <ClInclude Include="src\rendering\RenderCommandBuffer.h" />
     <ClInclude Include="src\rendering\Renderer.h" />
@@ -154,7 +169,7 @@
     <ClInclude Include="src\rendering\rendergraph\RendergraphPass.h" />
     <ClInclude Include="src\rendering\rendergraph\RendergraphTypes.h" />
     <ClInclude Include="src\rendering\RenderPacket.h" />
-    <ClInclude Include="src\rendering\backends\RenderPass.h" />
+    <ClInclude Include="src\rendering\RenderPass.h" />
     <ClInclude Include="src\rendering\Shader.h" />
     <ClInclude Include="src\rendering\Texture.h" />
     <ClInclude Include="src\scene\Components.h" />
@@ -165,7 +180,11 @@
   <ItemGroup>
     <ClCompile Include="src\assets\AssetManager.cpp" />
     <ClCompile Include="src\assets\AssetRegister.cpp" />
+    <ClCompile Include="src\assets\Loaders\MeshLoader.cpp" />
+    <ClCompile Include="src\assets\Loaders\SceneLoader.cpp" />
     <ClCompile Include="src\assets\Loaders\TextureLoader.cpp" />
+    <ClCompile Include="src\assets\Serialisation\JsonLoadArchive.cpp" />
+    <ClCompile Include="src\assets\Serialisation\JsonSaveArchive.cpp" />
     <ClCompile Include="src\assets\Serialisation\YAMLArchive.cpp" />
     <ClCompile Include="src\axelpch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
@@ -177,11 +196,14 @@
     <ClCompile Include="src\core\UUID.cpp" />
     <ClCompile Include="src\entry_point.cpp" />
     <ClCompile Include="src\events\EventBus.cpp" />
+    <ClCompile Include="src\input\Input_GLFW.cpp" />
     <ClCompile Include="src\math\Math.cpp" />
     <ClCompile Include="src\platform\WinPlatform.cpp" />
-    <ClCompile Include="src\rendering\backends\FrameBuffer.cpp" />
-    <ClCompile Include="src\rendering\backends\GraphicsContext.cpp" />
-    <ClCompile Include="src\rendering\backends\GraphicsDevice.cpp" />
+    <ClCompile Include="src\rendering\backends\vulkanbackend\VulkanDescriptorSetLayout.cpp" />
+    <ClCompile Include="src\rendering\DescriptorSetLayout.cpp" />
+    <ClCompile Include="src\rendering\FrameBuffer.cpp" />
+    <ClCompile Include="src\rendering\GraphicsContext.cpp" />
+    <ClCompile Include="src\rendering\GraphicsDevice.cpp" />
     <ClCompile Include="src\rendering\backends\vulkanbackend\VkIndexBuffer.cpp" />
     <ClCompile Include="src\rendering\backends\vulkanbackend\VkVertexBuffer.cpp" />
     <ClCompile Include="src\rendering\backends\vulkanbackend\VulkanBuffer.cpp" />
@@ -191,6 +213,7 @@
     <ClCompile Include="src\rendering\backends\vulkanbackend\VulkanDescriptorSet.cpp" />
     <ClCompile Include="src\rendering\backends\vulkanbackend\VulkanDevice.cpp" />
     <ClCompile Include="src\rendering\backends\vulkanbackend\VulkanFramebuffer.cpp" />
+    <ClCompile Include="src\rendering\backends\vulkanbackend\VulkanGeometryPool.cpp" />
     <ClCompile Include="src\rendering\backends\vulkanbackend\VulkanRenderAPI.cpp" />
     <ClCompile Include="src\rendering\backends\vulkanbackend\VulkanRenderPass.cpp" />
     <ClCompile Include="src\rendering\backends\vulkanbackend\VulkanShader.cpp" />
@@ -201,20 +224,26 @@
     <ClCompile Include="src\rendering\backends\vulkanbackend\VulkanUniformBuffer.cpp" />
     <ClCompile Include="src\rendering\Buffers.cpp" />
     <ClCompile Include="src\rendering\DescriptorSet.cpp" />
+    <ClCompile Include="src\rendering\IGeometryPool.cpp" />
     <ClCompile Include="src\rendering\MaterialInstance.cpp" />
     <ClCompile Include="src\rendering\MaterialManager.cpp" />
     <ClCompile Include="src\rendering\MaterialTemplate.cpp" />
     <ClCompile Include="src\rendering\Mesh.cpp" />
     <ClCompile Include="src\rendering\Pipeline.cpp" />
+    <ClCompile Include="src\rendering\render system\MeshRenderSystem.cpp" />
     <ClCompile Include="src\rendering\RenderAPI.cpp" />
     <ClCompile Include="src\rendering\RenderCommandBuffer.cpp" />
     <ClCompile Include="src\rendering\Renderer.cpp" />
     <ClCompile Include="src\rendering\rendergraph\Rendergraph.cpp" />
-    <ClCompile Include="src\rendering\backends\RenderPass.cpp" />
+    <ClCompile Include="src\rendering\RenderPass.cpp" />
     <ClCompile Include="src\rendering\Shader.cpp" />
     <ClCompile Include="src\rendering\Texture.cpp" />
+    <ClCompile Include="src\scene\Components.cpp" />
     <ClCompile Include="src\scene\Entity.cpp" />
     <ClCompile Include="src\scene\Scene.cpp" />
+    <ClCompile Include="vendors\cgltf\cgltf_impl.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="vendors\spirv_refl\spirv_reflect.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>

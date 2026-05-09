@@ -30,11 +30,14 @@ namespace Axel
         virtual void SetClearColor(const Vec4& color) = 0;
        
         virtual void SubmitCommandBuffer(Ref<RenderCommandBuffer> commandBuffer) = 0;
-        virtual void BindDescriptorSet(uint32_t setIndex, const Ref<DescriptorSet>& set, const Ref<Pipeline>& pipeline) = 0;
-        virtual void BindTextureDescriptorSet(uint32_t setIndex, Ref<Texture2D>& texture,Ref<Pipeline>& pipeline) = 0;
 
+        virtual void BindDescriptorSet(uint32_t setIndex, const Ref<DescriptorSet>& set) = 0;
+        virtual void BindTextureDescriptorSet(uint32_t setIndex, Ref<Texture2D>& texture,Ref<Pipeline>& pipeline) = 0;
+        virtual void BindPipeline(const Ref<Pipeline>& pipeline) = 0;
+        virtual void SetViewport(float width, float height) = 0;
+        virtual void SetScissor(float width, float height) = 0;
         virtual void DrawQuad(const Mat4& transform, const Ref<Texture2D>& texture) = 0;
-        virtual void DrawIndexed(uint32_t indexCount, uint32_t instanceCount = 1) = 0;
+        virtual void DrawIndexed(uint32_t indexCount, uint32_t instanceCount = 1, uint32_t firsIndex =0 , uint32_t vertexOffset =0 , uint32_t firstInstance =0) = 0;
 
         virtual void PushConstants(
             Ref<Pipeline> pipeline,

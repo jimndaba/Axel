@@ -82,6 +82,19 @@ namespace Axel
 		return "Win32";
 	}
 
+	void AxPlatform::SetWindowTitle(const std::string& title)
+	{
+		std::string win_title = "Axel Editor - " + title;
+		glfwSetWindowTitle((GLFWwindow*)mNativeWindowHandle, win_title.c_str());
+	}
+
+	bool AxPlatform::IsWindowMinimised()
+	{
+		int width, height;
+		glfwGetFramebufferSize((GLFWwindow*)mNativeWindowHandle, &width, &height);
+		return (width == 0 || height == 0);
+	}
+
 	void AxPlatform::OnWindowResize(std::shared_ptr<WindowResizeEvent>& evnt)
 	{
 		mCurrentWidth = evnt->Width;

@@ -12,13 +12,15 @@ namespace Axel
 	class VulkanTexture2D : public Texture2D
 	{
 	public:
-		VulkanTexture2D(uint32_t width, uint32_t height, const unsigned char* data);
+		VulkanTexture2D(TextureCreationInfo& info);
 		virtual ~VulkanTexture2D() override;
 		virtual uint32_t GetWidth() const override { return m_Width; }
 		virtual uint32_t GetHeight() const override { return m_Height; }
 		virtual uint32_t GetRendererID() const override { return m_RendererID; }
+		virtual void Destroy() override;
+		virtual bool ResizeImage(uint32_t width, uint32_t height) override;
 		void SetData(const void* data, uint32_t size) override;
-		void Invalidate(void* data);
+		bool Invalidate(void* data);
 		AssetTypeOptions GetType() const { return AssetTypeOptions::Texture2D; }
 
 		
@@ -41,7 +43,7 @@ namespace Axel
 		VkImageView m_ImageView;
 		VkSampler m_Sampler;
 		VkDeviceMemory m_DeviceMemory; // The actual GPU memory allocation
-
+		TextureCreationInfo m_Specification;
 		void* m_LocalData = nullptr; // Temporary CPU-side storage for the texture data
 	};
 }

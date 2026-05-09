@@ -14,8 +14,12 @@ namespace Axel
 	struct AX_API IEvent
 	{
 		virtual ~IEvent() = default;
+		virtual const char* Name() { return  "Event"; };
 	};
 
+	struct IRunnableEvent : public IEvent {
+		virtual void Run() = 0;
+	};
 
 	class HandlerFunctionBase
 	{

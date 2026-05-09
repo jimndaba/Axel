@@ -61,6 +61,7 @@ namespace Axel
         VkFormat m_Format;
         VkExtent2D m_Extent;
         uint32_t m_MinImageCount;
+
         std::vector<VkImage> m_Images;
         std::vector<VkImageView> m_ImageViews;
     };

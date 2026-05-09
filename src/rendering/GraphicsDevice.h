@@ -10,12 +10,12 @@ namespace Axel {
 
     struct Buffer;
     class Texture2D;
-    class Mesh;
     class VertexBuffer;
 	class IndexBuffer;  
     class VulkanContext;
     class DescriptorSet;
     class Pipeline;
+    class DescriptorSetLayout;
 
     struct DeviceCapabilities {
         std::string RendererName;
@@ -42,12 +42,11 @@ namespace Axel {
         virtual void DestroyTexture(Ref<Texture2D>& texture) = 0;
 
         virtual bool UploadTexture(Ref<Texture2D> texture) = 0;
-        virtual bool UploadMesh(Ref<Mesh> mesh) =0;
         virtual bool UploadBuffer(Ref<Buffer> buffer)=0;
         virtual void UnloadTexture(UUID textureID) =0;
         virtual bool IsTextureResident(UUID textureID) const =0;
 
-        virtual Ref<DescriptorSet> GetTextureDescriptor(UUID& outid, Ref<Pipeline>& pipeline, uint32_t index) = 0;
+        virtual Ref<DescriptorSet> GetTextureDescriptor(const UUID& id, Ref<DescriptorSetLayout> layout) =0;
     protected:
       
     };

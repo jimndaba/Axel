@@ -2,146 +2,87 @@
 #include <core/Logger.h>
 #include "Renderer.h"
 #include "RenderCommandBuffer.h"
-#include "backends/GraphicsContext.h"
-#include "backends/vulkanbackend/VulkanContext.h"
+#include "GraphicsContext.h"
+#include "GraphicsDevice.h"
 #include "Texture.h"
 #include <scene/Scene.h>
 #include "Shader.h"
 #include "Pipeline.h"
-#include "Buffers.h"
-#include "backends/FrameBuffer.h"
+#include "MaterialInstance.h"
 #include "MaterialTemplate.h"
+#include "Mesh.h"
+#include "Buffers.h"
+#include "FrameBuffer.h"
 #include <assets/AssetManager.h>
 #include <assets/Loaders/TextureLoader.h>
 #include "DescriptorSet.h"
 #include "MaterialManager.h"
+#include "IGeometryPool.h"
+#include "DescriptorSetLayout.h"
+
 
 std::unique_ptr<Axel::RendererData> Axel::Renderer::s_Data;
 std::shared_ptr<Axel::Texture2D> Axel::Renderer::s_WhiteTexture = nullptr;
+std::unique_ptr<Axel::IGeometryPool> Axel::Renderer::s_GeometryPool;
 
 void Axel::Renderer::Init(GraphicsContext* context,MaterialManager* mat_manager)
 {
 	s_Data = std::make_unique<RendererData>();
     s_Data->Context = context;
-    s_Data->m_MaterialManager = mat_manager;
-  
+    s_Data->m_MaterialManager = mat_manager;  
 
-    struct SimpleVertex {
-        Axel::Vec2 Position;
-        Axel::Vec3 Color;
-        Axel::Vec2 UV;
-    };
+    uint32_t MaxVertexBytes = 256 * 1024 * 1024; // 256 MB
+    uint32_t MaxIndexBytes = 64 * 1024 * 1024;  // 64 MB
 
-    // 1. Define the geometry
-    SimpleVertex vertices[4] = {
-    {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
-    {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
-    {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
-    {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}}
-    };
-
-    uint32_t indices[6] = { 0, 1, 2, 2, 3, 0 };
-
-    // 2. Create Buffers
-    s_Data->QuadVertexBuffer = Axel::VertexBuffer::Create((float*)vertices, sizeof(vertices), s_Data->Context);
-
-    s_Data->QuadVertexBuffer->SetLayout({
-        { Axel::ShaderDataType::Float2, "a_Position"},
-        { Axel::ShaderDataType::Float3, "a_Color"},
-        { Axel::ShaderDataType::Float2, "a_UV"}
-        });
-
-    s_Data->QuadIndexBuffer = Axel::IndexBuffer::Create(indices, 6, s_Data->Context);
-
-    //3. Load Shader & Build Pipeline
-    s_Data->QuadShader = AssetManager::GetAssetByName<Shader>("SpriteShader");
-    
-    s_Data->m_matTemplate = std::make_shared<Axel::MaterialTemplate>(s_Data->QuadShader->AssetID);
-    s_Data->m_matTemplate->BuildPipeline(s_Data->Context);    
-
-    AssetManager::RegisterAsset<MaterialTemplate>(s_Data->m_matTemplate);
-
-    s_Data->SpriteSSBO = ShaderStorageBuffer::Create(
-        context,
-        sizeof(SpriteRenderPacket) * s_Data->MaxSprites,
-        1 // binding point
-    );
-
-    s_Data->CameraUBO = UniformBuffer::Create(context,
-        sizeof(SceneCamera), 0);
-
-
-    auto pipeline = s_Data->m_matTemplate->GetPipeline();
-    s_Data->MainDescriptorSet = DescriptorSet::Create(s_Data->Context, pipeline, 0);
-    s_Data->MainDescriptorSet->Write("ubo",s_Data->CameraUBO);
-    s_Data->MainDescriptorSet->Write("ssbo", s_Data->SpriteSSBO);
-
-   
-   
-    
-
-    s_Data->m_texture = Axel::TextureLoader::Load("Assets/Textures/container.jpg");
-    auto result = s_Data->Context->GetDevice()->UploadTexture(s_Data->m_texture);
-    if (!result)
-    {
-        AXLOG_ERROR("Failed to create image: {}",s_Data->m_texture->AssetID);
-    }
-  
-    s_Data->MainDescriptorSet->Write("texSampler", s_Data->m_texture);
-    s_Data->MainDescriptorSet->Update();
-
-    s_Data->MaterialDescriptorSets.resize(2);
-    for (int i = 0 ;i < 2;i++)
-    {
-        s_Data->MaterialDescriptorSets[i] = DescriptorSet::Create(s_Data->Context, pipeline, 1);
-        s_Data->MaterialDescriptorSets[i]->Update();
-    }
-   
-
+    s_GeometryPool = IGeometryPool::Create(context, MaxVertexBytes, MaxIndexBytes);
     AXLOG_INFO("Context Initialized.");
 
+    std::vector<DescriptorBinding> bindings;
+    {
+        DescriptorBinding n;
+        n.Binding = 0;
+        n.Count = 1;
+        n.Name = "u_Scene";
+        n.Type = DescriptorType::UniformBuffer;
+        n.Stage = ShaderStage::Fragment | ShaderStage::Vertex;
+        bindings.push_back(n);
+    }
+    s_Data->m_SceneLayout = DescriptorSetLayout::Create(s_Data->Context,bindings);
+    s_Data->SceneDescriptorSet = DescriptorSet::Create(s_Data->Context, s_Data->m_SceneLayout);
+    s_Data->SceneUBO = UniformBuffer::Create(s_Data->Context,sizeof(SceneUBOData),0);
+    s_Data->SceneDescriptorSet->Write("u_Scene", s_Data->SceneUBO);
+    s_Data->SceneDescriptorSet->Update();
 }
 
 void Axel::Renderer::Shutdown()
 {
-    s_Data->Context->GetDevice()->DestroyTexture(s_Data->m_texture);
-    s_Data->QuadVertexBuffer->Destroy(s_Data->Context);
-    s_Data->QuadIndexBuffer->Destroy(s_Data->Context);
-
-    s_Data->CameraUBO->Destroy(s_Data->Context);
-    s_Data->SpriteSSBO->Destroy(s_Data->Context);
-    s_Data->MainDescriptorSet->Destroy();  
-    s_Data->m_matTemplate->GetPipeline()->Destroy();
-
-	s_Data.reset();
+    s_Data.reset();
 }
 
 void Axel::Renderer::BeginFrame()
 {
     // 1. Tell the Context (Vulkan) to wait for fences and acquire the next image
     s_Data->Context->BeginFrame();
-    s_Data->ActiveCommandBuffer = s_Data->Context->GetCurrentCommandBuffer();
-   
-    s_Data->UIPackets.clear();
-    s_Data->ParticlePackets.clear();
-    s_Data->SpritePackets.clear(); // Reset for the new frame
-    s_Data->MeshPackets.clear();
+    s_Data->ActiveCommandBuffer = s_Data->Context->GetCurrentCommandBuffer();   
+    s_Data->PacketQueue.clear();
+    s_Data->PacketQueue.reserve(10000);
+
 }
 
 void Axel::Renderer::EndFrame()
 {
-    s_Data->CurrentFrameIndex = (s_Data->CurrentFrameIndex + 1) % 2;
+    // Submit command buffer and present
     s_Data->Context->EndFrame();
     s_Data->Context->SwapBuffers();
+    s_Data->CurrentFrameIndex = (s_Data->CurrentFrameIndex + 1) % 2;
 }
 
-void Axel::Renderer::BeginRenderPass(Ref<RenderPass> renderPass, bool clear)
+void Axel::Renderer::BeginRenderPass(Ref<RenderPass> renderPass, Ref<Framebuffer> framebuffer, bool clear)
 {
     // 1. Get the current target from the context
-    auto targetFramebuffer = s_Data->Context->GetCurrentFramebuffer();
     // 2. Tell the active command buffer to record the "Begin" command
     // The Command Buffer implementation will handle the Vulkan specifics    
-    s_Data->ActiveCommandBuffer->BeginRenderPass(renderPass, targetFramebuffer);
+    s_Data->ActiveCommandBuffer->BeginRenderPass(renderPass, framebuffer);
 }
 
 void Axel::Renderer::EndRenderPass(Ref<RenderPass> renderPass)
@@ -149,106 +90,97 @@ void Axel::Renderer::EndRenderPass(Ref<RenderPass> renderPass)
     s_Data->ActiveCommandBuffer->EndRenderPass();
 }
 
-void Axel::Renderer::BeginScene(Scene* current_scene)
+void Axel::Renderer::OnUpdate()
 {
-    //Render System can Kick off Here
-// 1. Calculate the Matrix (Agnostic)
-    int width = s_Data->Context->GetCurrentFramebuffer()->GetSpecification().Width;
-    int height = s_Data->Context->GetCurrentFramebuffer()->GetSpecification().Height;
-    float aspectRatio = (float)width / (float)height;
-    //Axel::Mat4 projection = Axel::Math::Ortho(-aspectRatio, aspectRatio, -1.0f, 1.0f, -1.0f, 1.0f);
+}
 
-    SceneCamera current_camera{};
-    // Find the primary camera
-    auto view = current_scene->GetAllEntitiesWith<TransformComponent, CameraComponent>();
-    for (auto [entity, transform, camera] : view) {
-        if (camera.Primary) {
-            camera.AspectRatio = aspectRatio;
-            camera.CalculateProjection();
-            current_camera.ViewProjection = camera.Projection * Math::Inverse(transform.WorldTransform);
-            break;
-        }
-    }     
-    s_Data->CameraData = current_camera;
-    s_Data->CameraUBO->SetData(&s_Data->CameraData, sizeof(SceneCamera));
+void Axel::Renderer::BeginScene(SceneRenderDesc& desc)
+{
+    s_Data->SceneUBO->SetData(&desc, sizeof(SceneUBOData));
 
+    // 1. Update Global Material SSBO
+    s_Data->m_MaterialManager->Update();
 
-   
-    // 4. Batch Submission
-    auto render_view = current_scene->GetAllEntitiesWith<TransformComponent, SpriteComponent>();
-    for (auto [entity, trans, sprite] : render_view) {
-       
-        SubmitSprite(trans.WorldTransform, sprite.Color, sprite.TextureHandle,sprite.MaterialID);
-    }
-
+    // 2. Set Dynamic States
+    SetViewport(desc.ViewportWidth, desc.ViewportHeight);
+    SetScissor(desc.ViewportWidth, desc.ViewportHeight);
 }
 
 void Axel::Renderer::EndScene()
-{
-    if (s_Data->SpritePackets.empty()) return;
-
-    // 1. Sort by TextureHandle to minimize pipeline stalls
-    std::sort(s_Data->SpritePackets.begin(), s_Data->SpritePackets.end(),
-        [](const SpriteRenderPacket& a, const SpriteRenderPacket& b) {
-            return a.TextureHandle < b.TextureHandle;
-        });
-
-    s_Data->m_MaterialManager->Update();
-
-    auto materialBuffer = s_Data->m_MaterialManager->GetMaterialBuffer();
-    s_Data->MaterialDescriptorSets[s_Data->CurrentFrameIndex]->Write("u_MaterialTable", materialBuffer);
-    s_Data->MaterialDescriptorSets[s_Data->CurrentFrameIndex]->Update();
-
-    uint32_t dataSize = s_Data->SpritePackets.size() * sizeof(SpriteRenderPacket);
-    s_Data->SpriteSSBO->SetData(s_Data->SpritePackets.data(), dataSize);
-
-
-    auto pipeline = s_Data->m_matTemplate->GetPipeline();
-    pipeline->Bind(*s_Data->Context);
-
-    BindDescriptorSet(0, s_Data->MainDescriptorSet, pipeline);
-    BindDescriptorSet(1, s_Data->MaterialDescriptorSets[s_Data->CurrentFrameIndex], pipeline);
-
-    s_Data->QuadVertexBuffer->Bind(*s_Data->Context);
-    s_Data->QuadIndexBuffer->Bind(*s_Data->Context);
-
-    uint32_t instanceCount = static_cast<uint32_t>(s_Data->SpritePackets.size());
-
-    DrawIndexedInstanced(6, instanceCount);
-
-    // 5. Clear for next frame
-    s_Data->SpritePackets.clear();
-
+{   
+    Flush();   
 }
 
 void Axel::Renderer::Flush()
 {
-    if (s_Data->SpritePackets.empty()) return;
+    auto& q = s_Data->PacketQueue;
 
-    // 1. Map the Storage Buffer (SSBO) or Instance Buffer
-    // 2. Upload s_Data->SpritePackets to the GPU
-    s_Data->SpriteSSBO->SetData(s_Data->SpritePackets.data(),
-        s_Data->SpritePackets.size() * sizeof(SpriteRenderPacket));
+    std::vector<RenderPacket> opaquePackets;
+    std::vector<RenderPacket> transparentPackets;
+    std::vector<RenderPacket> uiPackets;
+    std::vector<RenderPacket> debugPackets;
 
-    // 3. Clear the CPU-side queue for the next frame/pass
-    s_Data->SpritePackets.clear();
+    for (auto& packet : q) {
+        switch (packet.Type) {
+        case RenderPacketTypeOptions::Mesh:
+        case RenderPacketTypeOptions::SkinnedMesh:
+            opaquePackets.push_back(packet);
+            break;
+        case RenderPacketTypeOptions::Billboard:
+        case RenderPacketTypeOptions::Particle:
+            transparentPackets.push_back(packet);
+            break;
+        case RenderPacketTypeOptions::UI:
+            uiPackets.push_back(packet);
+            break;
+        case RenderPacketTypeOptions::DebugLine:
+            debugPackets.push_back(packet);
+            break;
+        }
+    }
+
+    // Opaque: front-to-back (reduce overdraw), then by pipeline/material
+    std::sort(opaquePackets.begin(), opaquePackets.end(),
+        [](const RenderPacket& a, const RenderPacket& b) {
+            return a.SortKey < b.SortKey;
+        });
+
+    std::sort(transparentPackets.begin(), transparentPackets.end(),
+        [](const RenderPacket& a, const RenderPacket& b) {
+            return a.SortKey > b.SortKey; // back-to-front for transparency
+        });
+      
+
+    // -- - Step 3: Dispatch in the correct render order-- - TODO
+    ExecuteOpaquePass(opaquePackets);
+    //ExecuteTransparentPass(transparentPackets);
+    //ExecuteUIPass(uiPackets);
+    //ExecuteDebugPass(debugPackets);     // Always last so it draws on top
+
+    q.clear();
+}
+
+void Axel::Renderer::RegisterMaterial(const Ref<MaterialInstance>& material)
+{
+    s_Data->m_MaterialManager->RegisterMaterial(material);
+}
+
+uint32_t Axel::Renderer::GetMaterialIndex(UUID materialID)
+{
+    return  s_Data->m_MaterialManager->GetMaterialIndex(materialID);
 }
 
 void Axel::Renderer::BindBuffers()
 {
-    s_Data->QuadVertexBuffer->Bind(*s_Data->Context);
-    s_Data->QuadIndexBuffer->Bind(*s_Data->Context);
-    s_Data->SpriteSSBO->Bind(*s_Data->Context,1);
+    //s_Data->QuadVertexBuffer->Bind(*s_Data->Context);
+    //s_Data->QuadIndexBuffer->Bind(*s_Data->Context);
+    //s_Data->SpriteSSBO->Bind(*s_Data->Context,1);
 }
 
 void Axel::Renderer::Submit(const Ref<RenderCommandBuffer>& commandBuffer)
 {
     auto renderAPI = s_Data->Context->GetRenderAPI();
     renderAPI->SubmitCommandBuffer(commandBuffer);
-}
-
-void Axel::Renderer::Submit(Ref<Mesh> mesh, Ref<Material> material, const Mat4& transform)
-{
 }
 
 void Axel::Renderer::SubmitParticle(const Particle& particle)
@@ -259,39 +191,54 @@ void Axel::Renderer::SubmitUI(Ref<UIElement> element)
 {
 }
 
-void Axel::Renderer::SubmitInstanced(Ref<Mesh> mesh, Ref<Material> material, const std::vector<glm::mat4>& transforms)
+void Axel::Renderer::SubmitMesh(MeshComponent& meshComp, TransformComponent& transform, float depth)
 {
-    /*
-    RenderPacket packet;
-    packet.Type = RenderPacketType::Mesh;
-    packet.Material = material;
-    packet. = mesh->GetVBO();
-    packet.IBO = mesh->GetIBO();
+    // 1. Build the typed sub-packet
+    const auto& mesh_asset = AssetManager::GetAsset<Mesh<StaticVertex>>(meshComp.MeshHandle);
+    
+    for (uint32_t j = 0; j < mesh_asset->m_Submeshes.size(); ++j)
+    {
+        const auto& submesh = mesh_asset->m_Submeshes[j];
 
-    packet.InstanceCount = static_cast<uint32_t>(transforms.size());
 
-    // Create or grab a GPU buffer for these transforms
-    packet.InstanceData = CreateRef<InstanceBuffer>(transforms.data(), transforms.size() * sizeof(glm::mat4));
+        MeshRenderPacket mesh;
+        mesh.Transform = transform.WorldTransform;
+        mesh.MeshHandle = meshComp.MeshHandle; // raw value, safe in union
+        mesh.SubmeshIndex = j;
+        mesh.MaterialIndex = submesh.MaterialIndex;
 
-    // Sort based on the center of the group or the first instance
-    float distance = glm::distance(s_Data->CameraPosition, glm::vec3(transforms[0][3]));
-    packet.SortKey = CalculateSortKey(mesh->GetID(), material->GetID(), distance);
-
-    s_Data->MeshPackets.push_back(packet);
-    */
+        // 2. Wrap in the master packet
+        RenderPacket packet{};  
+        packet.Data = std::move(mesh);
+        // 3. Compute sort key
+        // Opaque: front-to-back, grouped by pipeline then material
+        // Pipeline ID comes from material — look it up once here, not in the flush loop
+        UUID materialtemplateID = s_Data->m_MaterialManager->GetMaterialTemplateID(submesh.MaterialIndex);
+        packet.SortKey = RenderPacket::MakeSortKey(materialtemplateID, submesh.MaterialIndex, depth);
+        s_Data->PacketQueue.push_back(packet);
+    }  
 }
 
-void Axel::Renderer::SubmitSprite(Mat4& transform, Vec4 colour, UUID TextureHandle, UUID MaterialID)
+void Axel::Renderer::SubmitDebugLine(const Vec3& start, const Vec3& end, const Vec4& color, float duration, bool depthTest)
 {
-    auto index= s_Data->m_MaterialManager->GetMaterialIndex(MaterialID);
-    s_Data->SpritePackets.push_back({ transform, colour,0,index });
+    DebugLinePacket line;
+    line.Start = start;
+    line.End = end;
+    line.Color = color;
+    line.Duration = duration;
+    line.DepthTest = depthTest;
+
+    RenderPacket packet{};
+    packet.SortKey = 0;
+    packet.Data = std::move(line);
+
+    s_Data->PacketQueue.push_back(packet);
 }
 
-
-std::shared_ptr<Axel::DescriptorSet>& Axel::Renderer::ProvideTextureDescriptor(const Ref<Texture2D>& texture, Ref<Pipeline>& pipeline, uint32_t index)
+std::shared_ptr<Axel::DescriptorSet>& Axel::Renderer::ProvideTextureDescriptor(const Ref<Texture2D>& texture, Ref<DescriptorSetLayout> layout)
 {
     auto device = s_Data->Context->GetDevice();
-    auto descriptor = device->GetTextureDescriptor(texture->AssetID,pipeline, index);
+    auto descriptor = device->GetTextureDescriptor(texture->AssetID,layout);
     if (descriptor)
         return descriptor;
 
@@ -301,12 +248,13 @@ std::shared_ptr<Axel::DescriptorSet>& Axel::Renderer::ProvideTextureDescriptor(c
 
 void Axel::Renderer::RealeaseTextureDescriptor(const Ref<Texture2D>& texture,Ref<Pipeline>& pipeline)
 {
+    //Not used in vulkan
 }
 
 void Axel::Renderer::BindDescriptorSet(uint32_t setIndex, const Ref<DescriptorSet>& set, const Ref<Pipeline>& pipeline)
 {
     auto renderAPI = s_Data->Context->GetRenderAPI();
-    renderAPI->BindDescriptorSet(setIndex, set, pipeline);
+    renderAPI->BindDescriptorSet(setIndex, set);
 }
 
 void Axel::Renderer::BindTextureDescriptorSet(uint32_t setIndex, Ref<Texture2D>& texture,Ref<Pipeline>& pipeline)
@@ -315,8 +263,27 @@ void Axel::Renderer::BindTextureDescriptorSet(uint32_t setIndex, Ref<Texture2D>&
     renderAPI->BindTextureDescriptorSet(setIndex, texture, pipeline);
 }
 
+void Axel::Renderer::BindPipeline(Ref<Pipeline>& pipeline)
+{
+    auto renderAPI = s_Data->Context->GetRenderAPI();
+    renderAPI->BindPipeline(pipeline);
+}
+
+void Axel::Renderer::SetViewport(float width, float height)
+{
+    auto renderAPI = s_Data->Context->GetRenderAPI();
+    renderAPI->SetViewport(width,height);
+}
+
+void Axel::Renderer::SetScissor(float width, float height)
+{
+    auto renderAPI = s_Data->Context->GetRenderAPI();
+    renderAPI->SetScissor(width, height);
+}
+
 void Axel::Renderer::DrawIndexed(uint32_t indexCount)
 {
+
     // Retrieve the command buffer currently being recorded for this frame
     auto renderAPI = s_Data->Context->GetRenderAPI();
     renderAPI->DrawIndexed(indexCount);
@@ -336,4 +303,80 @@ void Axel::Renderer::DrawQuad(Mat4 transsform, Ref<Texture2D> texture)
     // Parameters: CommandBuffer, IndexCount, InstanceCount, FirstIndex, VertexOffset, FirstInstance
    // s_Data->ActiveCommandBuffer->DrawQuad(indexCount, 1);
 
+}
+
+void Axel::Renderer::ExecuteOpaquePass(const std::vector<RenderPacket>& packets)
+{
+    if (packets.empty()) return;
+
+    auto renderAPI = s_Data->Context->GetRenderAPI();
+
+    // 1. GLOBAL STATE (Top-level Bindings)
+    // All meshes in our RPG share the same Vertex/Index pool
+    s_GeometryPool->GetVertexBuffer()->Bind(*s_Data->Context);
+    s_GeometryPool->GetIndexBuffer()->Bind(*s_Data->Context);
+
+    // Track state to avoid redundant Vulkan commands
+    uint16_t currentPipelineID = 0xFFFF;
+    UUID currentMeshHandle = 0; // Optimization: avoid re-binding mesh assets if same
+
+    for (const auto& packet : packets)
+    {
+        auto& meshData = packet.Get<MeshRenderPacket>();
+        uint16_t pipelineID = (uint16_t)(packet.SortKey >> 48);
+
+        // 2. PIPELINE & DESCRIPTOR STATE SWITCH
+        // Only run this when the material template changes
+        if (pipelineID != currentPipelineID)
+        {
+            UUID templateID = s_Data->m_MaterialManager->GetMaterialTemplateID(meshData.MaterialIndex);
+            auto materialTemplate = AssetManager::GetAsset<MaterialTemplate>(templateID);
+
+            if (materialTemplate)
+            {
+                auto pipeline = materialTemplate->GetPipeline();
+                renderAPI->BindPipeline(pipeline);
+                renderAPI->BindDescriptorSet(0, s_Data->SceneDescriptorSet);
+                renderAPI->BindDescriptorSet(1, s_Data->m_MaterialManager->GetMaterialDescriptorSet());
+
+                currentPipelineID = pipelineID;
+            }
+        }
+
+
+        // 3. OBJECT DATA (The "What" of the draw call)
+        // Update Push Constants (Set 2 equivalent)
+        struct PushConstants {
+            Mat4 Transform;
+            uint32_t MaterialIndex;
+        } pc;
+
+        pc.Transform = meshData.Transform;
+        pc.MaterialIndex = meshData.MaterialIndex;
+
+        // Note: You need a GetPipelineLayout() on your template or pipeline
+        auto materialTemplate = AssetManager::GetAsset<MaterialTemplate>(
+            s_Data->m_MaterialManager->GetMaterialTemplateID(meshData.MaterialIndex)
+        );
+
+        renderAPI->PushConstants(
+            materialTemplate->GetPipeline(),
+            ShaderStage::Vertex | ShaderStage::Fragment,
+            &pc,
+            sizeof(PushConstants)
+        );
+
+        
+        // 4. THE DRAW CALL
+        auto meshAsset = AssetManager::GetAsset<Mesh<StaticVertex>>(meshData.MeshHandle);
+        const auto& submesh = meshAsset->m_Submeshes[meshData.SubmeshIndex];
+        const auto& allocation = meshAsset->m_Allocation; // The global pool position
+
+        renderAPI->DrawIndexed(
+            submesh.IndexCount,
+            1,
+            allocation.IndexOffset + submesh.IndexOffset,  // absolute index start
+            allocation.VertexOffset + submesh.VertexOffset,0
+        );
+    }
 }

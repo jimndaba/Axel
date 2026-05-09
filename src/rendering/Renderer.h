@@ -7,11 +7,11 @@
 #include "RenderPacket.h"
 #include "RenderAPI.h"
 #include "RenderCommandBuffer.h"
-#include "backends/GraphicsContext.h"
+#include "GraphicsContext.h"
+#include "render system/IRenderSystem.h"
 
 namespace Axel
 {
-    class Mesh;
     class Material;
     class Particle;
     class UIElement;
@@ -29,43 +29,27 @@ namespace Axel
     class ShaderStorageBuffer;
     class UniformBuffer;
     struct MaterialTemplate;
+    class MaterialInstance;
     class MaterialManager;
-
-    class Scene;
-
-    struct SceneCamera {
-        Mat4 ViewProjection;
-        // You might add Exposure, Near/Far planes, etc. later
-    };
-
+    class IGeometryPool;
+    class DescriptorSetLayout;
+   
     struct AX_API RendererData {
-        // The View/Projection data for the current frame
-        // The "Buckets" for sorting and drawing
-        std::vector<RenderPacket> MeshPackets;
-        std::vector<SpriteRenderPacket> SpritePackets;
-        std::vector<RenderPacket> UIPackets;
-        std::vector<RenderPacket> ParticlePackets;
-        std::shared_ptr<MaterialTemplate> m_matTemplate;
+  
+        std::vector<RenderPacket> PacketQueue;
 
         // Statistics (Optional but helpful for id Tech-style debugging)
         uint32_t DrawCalls = 0;
         uint32_t IndexCount = 0;
-        uint32_t MaxSprites = 10000;
         uint32_t CurrentFrameIndex = 0;
-
-        SceneCamera CameraData = SceneCamera();
         GraphicsContext* Context = nullptr;
         MaterialManager* m_MaterialManager = nullptr;
-        Ref<RenderCommandBuffer> ActiveCommandBuffer;
-
-        Ref<VertexBuffer> QuadVertexBuffer;
-        Ref<IndexBuffer> QuadIndexBuffer;
-        Ref<Shader> QuadShader;
-        Ref<Axel::Texture2D> m_texture;
-
+        Ref<RenderCommandBuffer> ActiveCommandBuffer;        
+        
         Ref<ShaderStorageBuffer> SpriteSSBO;
-        Ref<UniformBuffer> CameraUBO;
-        Ref<DescriptorSet> MainDescriptorSet;
+        Ref<UniformBuffer> SceneUBO;
+        Ref<DescriptorSetLayout> m_SceneLayout;
+        Ref<DescriptorSet> SceneDescriptorSet;
         std::vector<Ref<DescriptorSet>> MaterialDescriptorSets;
     };
 
@@ -81,44 +65,62 @@ namespace Axel
         static void BeginFrame();
         static void EndFrame();
 
-        static void BeginRenderPass(Ref<RenderPass> renderPass, bool clear);
+        static void BeginRenderPass(Ref<RenderPass> renderPass,Ref<Framebuffer> framebuffer, bool clear);
         static void EndRenderPass(Ref<RenderPass> renderPass);
 
+        static void OnUpdate();
+
         // Scene Scope
-        static void BeginScene(Scene* current_scene);
+        static void BeginScene(SceneRenderDesc& desc);
         static void EndScene();
         static void Flush();
 
+        static void RegisterMaterial(const Ref<MaterialInstance>& material);
+        static uint32_t GetMaterialIndex(UUID materialID);
         static void BindBuffers();
 
         // High-level Submissions (The "What")
-        static void Submit(const Ref<RenderCommandBuffer>& commandBuffer);
-        static void Submit(Ref<Mesh> mesh, Ref<Material> material, const Mat4& transform = Mat4(1.0f));
+        static void Submit(const Ref<RenderCommandBuffer>& commandBuffer);     
         static void SubmitParticle(const Particle& particle);
-        static void SubmitUI(Ref<UIElement> element);
-        static void SubmitInstanced(Ref<Mesh> mesh, Ref<Material> material, const std::vector<glm::mat4>& transforms);
-        static void SubmitSprite(Mat4& transform, Vec4 colour, UUID TextureHandle, UUID Material);
 
-        static Ref<DescriptorSet>& ProvideTextureDescriptor(const Ref<Texture2D>& texture,Ref<Pipeline>& pipeline, uint32_t index);
+        static void SubmitUI(Ref<UIElement> element);     
+
+        static void SubmitMesh(MeshComponent& meshComp, TransformComponent& transform, float depth = 0.0f);
+
+        static void SubmitDebugLine(
+            const Vec3& start,
+            const Vec3& end,
+            const Vec4& color,
+            float       duration,
+            bool        depthTest);
+
+
+
+        static Ref<DescriptorSet>& ProvideTextureDescriptor(const Ref<Texture2D>& texture, Ref<DescriptorSetLayout> layout);
         static void RealeaseTextureDescriptor(const Ref<Texture2D>& texture,Ref<Pipeline>& pipeline);
         static void BindDescriptorSet(uint32_t setIndex, const Ref<DescriptorSet>& set, const Ref<Pipeline>& pipeline);
         static void BindTextureDescriptorSet(uint32_t setIndex, Ref<Texture2D>& texture,Ref<Pipeline>& pipeline);
+        static void BindPipeline(Ref<Pipeline>& pipeline);
+        static void SetViewport(float width, float height);
+        static void SetScissor(float width, float height);
 
         static void DrawIndexed(uint32_t indexCount);
         static void DrawIndexedInstanced(uint32_t indexCount, uint32_t instanceCount);
         static void DrawQuad(Mat4 transsform,Ref<Texture2D> texture);
+
+        static void ExecuteOpaquePass(const std::vector<RenderPacket>& packets);
         
         static Ref<RenderCommandBuffer> GetActiveCommandBuffer() { return s_Data->ActiveCommandBuffer; }
-
 		static RenderAPI::API GetCurrentAPI() { return s_Data->Context->GetCurrentAPI(); }
         static GraphicsContext* GetGraphicsContext() { return s_Data->Context; }
-
+        static IGeometryPool* GetGeometryPool() { return s_GeometryPool.get(); }
         static RendererData* GetRenderData () { return s_Data.get(); }
+        static Ref<UniformBuffer> GetSceneBuffer() { return  s_Data->SceneUBO; }
 
     private:        
         static Scope<RendererData> s_Data;
-        static Scope<SceneCamera> s_SceneCamera;
 		static Ref<Texture2D> s_WhiteTexture; // A default white texture for materials that don't have one
+        static Scope<IGeometryPool> s_GeometryPool;
 	};
 
 

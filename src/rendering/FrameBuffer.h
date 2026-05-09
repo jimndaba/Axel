@@ -2,24 +2,15 @@
 #ifndef FRAMEBUFFER_H
 #define FRAMEBUFFER_H
 
-#include "../../core/Core.h"
+#include <core/Core.h>
+#include <rendering/GraphicsCore.h>
 #include "RenderPass.h"
 #include <vector>
 
 namespace Axel
 {
     class GraphicsDevice;
-
-    enum class FramebufferTextureFormat {
-        None = 0,
-        // Color
-        RGBA8,
-        RED_INTEGER,
-        // Depth/Stencil
-        DEPTH24STENCIL8,
-        // Defaults
-        Depth = DEPTH24STENCIL8
-    };
+    class Texture2D;
 
     struct FramebufferSpecification {
         uint32_t Width = 0;
@@ -28,14 +19,16 @@ namespace Axel
 
         Ref<RenderPass> RenderPass;
         std::vector<void*> ExistingImages; // Pointers to VkImageViews for Swapchain
-        std::vector<FramebufferTextureFormat> Attachments;
+        std::vector<TextureFormatOptions> Attachments;
+        bool HasDepthStencil = false;
+        bool IsSampled = false;
         bool SwapChainTarget = false;
     };
 
     class Framebuffer {
     public:
         virtual ~Framebuffer() = default;
-
+		virtual std::shared_ptr<Texture2D> GetColorAttachmentRendererID(uint32_t index = 0) const = 0;
         virtual void Resize(uint32_t width, uint32_t height) = 0;
         virtual const FramebufferSpecification& GetSpecification() const = 0;
 

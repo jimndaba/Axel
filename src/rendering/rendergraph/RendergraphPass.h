@@ -16,7 +16,7 @@ namespace Axel
 
     struct RenderPassSpecification {
         std::string DebugName;
-        ImageFormat Format;
+        TextureFormatOptions Format;
         AttachmentLoadOp LoadOp = AttachmentLoadOp::Clear;
         AttachmentStoreOp StoreOp = AttachmentStoreOp::Store;
         glm::vec4 ClearColor{ 0.0f, 0.0f, 0.0f, 1.0f };
@@ -24,18 +24,12 @@ namespace Axel
 
     class RenderGraphPass {
     public:
-        using ExecuteFunc = std::function<void(Ref<RenderCommandBuffer>, const std::vector<RenderPacket>&)>;
-
-        RenderGraphPass(const std::string& name, ExecuteFunc func)
-            : Name(name), m_Execute(func) {}
-
-        void Execute(Ref<RenderCommandBuffer> cmd, const std::vector<RenderPacket>& packets) {
-            m_Execute(cmd, packets);
-        }
+  
+               
 
         std::string Name;
     private:
-        ExecuteFunc m_Execute;
+
     };
 
 

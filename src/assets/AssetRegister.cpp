@@ -4,6 +4,7 @@
 #include <fstream>
 
 #include "Serialisation/Archive.h"
+#include <core/Reflection.h>
 
 struct Axel::AssetRegister::RegistryImpl {
     std::unordered_map<Axel::UUID, AssetMetadata> Data;
@@ -11,58 +12,49 @@ struct Axel::AssetRegister::RegistryImpl {
 
 const Axel::AssetMetadata& Axel::AssetRegister::GetMetadata(UUID id) const
 {
-	auto it = m_Registry.find(id);
-	if (it != m_Registry.end()) {
-        return it->second;
-    }
-	return AssetMetadata(); // Return a default if not found, or consider throwing an exception
+    static const AssetMetadata s_Empty{};
+    auto it = m_Registry.find(id);
+    return (it != m_Registry.end()) ? it->second : s_Empty;
 }
 
 void Axel::AssetRegister::Serialize(IArchive& ar)
 {
-    uint32_t count = (uint32_t)m_Registry.size();
-    if (ar.BeginCollection("Assets", count)) 
-    {       
+    if (ar.BeginStruct("AssetRegister"))
+    {
         if (ar.GetMode() == ArchiveModeOptions::Save)
         {
-            for (auto& [id, metadata] : m_Registry) 
+            ar.BeginCollection("Assets", m_AssetCount);
+            for (auto& [id, metadata] : m_Registry)
             {
-                metadata.Serialize(ar);
-                ar.NextItem();               
+                Reflect(metadata, ar);
             }
+            ar.EndCollection();
         }
-        else // Load mode
+        else
         {
             m_Registry.clear(); // Fresh start for the address book
 
-            for (uint32_t i = 0; i < count; ++i)
-            {                
-                AssetMetadata metadata;
-                metadata.Serialize(ar);
-                m_Registry[metadata.AssetID] = metadata; // Use the deserialized ID as the key
-                ar.NextItem();
+            if (ar.BeginCollection("Assets", m_AssetCount))
+            {
+                while (ar.HasNext())
+                {                    
+                    if (ar.BeginStruct("AssetMetaData"))
+                    {
+                        AssetMetadata metadata;
+                        Reflect(metadata, ar);
+                        m_Registry[metadata.AssetID] = metadata;
+                        ar.EndStruct();
+                    }
+                    ar.NextItem();
+                }
+
+                ar.EndCollection();
             }
-
         }
-        ar.EndCollection();
+        ar.EndStruct();
     }
-
 }
 
 void Axel::AssetMetadata::Serialize(IArchive& ar) 
 {
-	int typeVal = (int)AssetType;
-    ar.BeginStruct("Asset");   
-    ar.Property("ID", AssetID);
-    ar.Property("Name", Name);    
-    ar.Property("Path", Path);   
-    ar.Property("Type", typeVal);
-
-    // 3. THE CRITICAL STEP: Re-assign back to the class during Load
-    if (ar.GetMode() == ArchiveModeOptions::Load)
-    {
-        AssetType = (AssetTypeOptions)typeVal;
-    }
-
-    ar.EndStruct();
 }

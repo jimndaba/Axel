@@ -19,6 +19,7 @@ namespace Axel
 			virtual void Bind(GraphicsContext& context) const;
 			virtual uint32_t GetCount() const override { return m_Count; }
 			virtual void Destroy(GraphicsContext* context);
+			VulkanBuffer* GetBuffer() { return m_Buffer; }
 	private:	
 		VulkanBuffer* m_Buffer;
 		uint32_t m_Count;

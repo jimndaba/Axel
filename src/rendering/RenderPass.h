@@ -5,6 +5,7 @@
 #include "core/Core.h"
 #include "math/Math.h"
 #include <string>
+#include <rendering/GraphicsCore.h>
 
 namespace Axel
 {
@@ -16,10 +17,15 @@ namespace Axel
 
     struct RenderPassSpecification {
         std::string DebugName;
-        ImageFormat Format;
+        std::vector<TextureFormatOptions> Formats;
+        bool HasDepthStencil = false;
+        bool IsSampled = false;
+        TextureFormatOptions DepthFormat = TextureFormatOptions::Depth24Stencil8;
         AttachmentLoadOp LoadOp = AttachmentLoadOp::Clear;
         AttachmentStoreOp StoreOp = AttachmentStoreOp::Store;
         Vec4 ClearColor{ 0.0f, 0.0f, 0.0f, 1.0f };
+        bool SwapChainTarget = false;
+        
     };
 
   

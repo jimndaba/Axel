@@ -14,6 +14,7 @@ namespace Axel
 		virtual ~VulkanUniformBuffer() override;
 		virtual void SetData(const void* data, uint32_t size, uint32_t offset = 0) override;
 		VkBuffer GetBuffer() const { return m_Buffer; }
+		uint32_t GetSize() const override{ return m_Size; }
 		virtual void Destroy(GraphicsContext* context);
 	private:
 		uint32_t m_Size;

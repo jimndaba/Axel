@@ -77,16 +77,7 @@ namespace Axel
 		return std::make_unique<T>(std::forward<Args>(args)...);
 	}
 
-	enum class ImageFormat {
-		None = 0,
-		R8,
-		RGB8,
-		RGBA8,
-		RGBA16F,
-		RGBA32F,
-		Depth24Stencil8,
-		Depth32F
-	};
+	
 }
 
 

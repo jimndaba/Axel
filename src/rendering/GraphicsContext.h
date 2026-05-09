@@ -35,10 +35,11 @@ namespace Axel {
         virtual Ref<RenderAPI> GetRenderAPI() = 0;  // ✓ NEW       
         virtual Ref<Framebuffer> GetCurrentFramebuffer() = 0;
         virtual Ref<RenderPass> GetMainRenderPass() = 0; // The "Screen" pass
-        virtual Ref<RenderCommandBuffer> GetCurrentCommandBuffer() = 0;	
+        virtual Ref<RenderCommandBuffer> GetCurrentCommandBuffer() const = 0;
 
         // Factory method to decide which API to boot
         static Scope<GraphicsContext> Create(void* windowHandle);
+
     };
 }
 

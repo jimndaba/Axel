@@ -17,6 +17,7 @@ namespace Axel
 		VkVertexBuffer(GraphicsContext& context,float* vertices, uint32_t size);
 		virtual void Bind(GraphicsContext& context) const;
 		virtual void Destroy(GraphicsContext* context);
+		VulkanBuffer* GetBuffer() { return m_Buffer; }
 	private:
 		VulkanBuffer* m_Buffer;
 	};

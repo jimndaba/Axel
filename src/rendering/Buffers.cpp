@@ -7,8 +7,8 @@
 #include "backends/vulkanbackend/VulkanShaderStorageBuffer.h"
 #include "backends/vulkanbackend/VulkanDevice.h"
 
-#include "backends/GraphicsContext.h"
-#include "backends/GraphicsDevice.h"
+#include "GraphicsContext.h"
+#include "GraphicsDevice.h"
 
 std::shared_ptr<Axel::VertexBuffer> Axel::VertexBuffer::Create(float* vertices, uint32_t size, GraphicsContext* ctxt)
 {

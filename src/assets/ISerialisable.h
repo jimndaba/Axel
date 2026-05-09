@@ -14,6 +14,7 @@ namespace Axel
 	public:
 		virtual ~ISerialisable() = default;
 		virtual void Serialize(IArchive& ar) = 0;
+		virtual const char* GetName() = 0;
 	};
 	
 }

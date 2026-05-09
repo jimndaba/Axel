@@ -54,7 +54,7 @@ namespace Axel
 
 		AssetTypeOptions GetType() const override { return AssetTypeOptions::Material; }
 		UUID GetTemplateID() const { return m_TemplateID; }
-
+		virtual const char* GetName() { return "Material Instance"; }
 	private:
 		UUID m_TemplateID;
 		// The dynamic data store

@@ -36,7 +36,12 @@ namespace Axel
 		void* GetNativeWindow();
 		void GetDisplayMetrics(int& outWidth, int& outHeight) const;
 		std::string GetPlatformName() const;
+		void SetWindowTitle(const std::string& title);
+		bool IsWindowMinimised();
+
+
 		void OnWindowResize(std::shared_ptr<WindowResizeEvent>& evnt);
+
 
 		void* LoadSharedLibrary(const char* path);
 		void* GetSymbol(void* handle, const char* symbol);

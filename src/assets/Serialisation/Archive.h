@@ -5,55 +5,31 @@
 #include <core/Core.h>
 #include <core/UUID.h>
 #include <math/Math.h>
+#include <span>
 
 namespace Axel
 {
-    enum class ArchiveModeOptions { Save, Load };
+    enum class ArchiveModeOptions { Save, Load,Editor };
 
     class IArchive {
     public:
         virtual ~IArchive() = default;
         virtual ArchiveModeOptions GetMode() const = 0;
 
-        // Primitives
-        virtual void Property(const char* name, float& value) = 0;      
+        // Primitive values only
+        virtual void Property(const char* name, float& value) = 0;
+        virtual void Property(const char* name, double& value) = 0;
         virtual void Property(const char* name, bool& value) = 0;
-        virtual void Property(const char* name, std::string& value) = 0;
-        virtual void Property(const char* name, uint64_t& value) = 0;
-        virtual void Property(const char* name, UUID& value) = 0;
-        virtual void Property(const char* name, std::vector<UUID>& container) = 0;
-        virtual void Property(const char* name, uint32_t& value) = 0;       
         virtual void Property(const char* name, int32_t& value) = 0;
-       
-
-
-		//Const versions for primitives (for read-only properties)
-		virtual void Property(const char* name, const float& value) = 0;
-        virtual void Property(const char* name, const bool& value) = 0;
-        virtual void Property(const char* name, const std::string& value) = 0;
-        virtual void Property(const char* name, const uint64_t& value) = 0;
-        virtual void Property(const char* name, const UUID& value) = 0;
-        virtual void Property(const char* name, const std::vector<UUID>& container) =0;
-        virtual void Property(const char* name, const uint32_t& value) = 0;
-        virtual void Property(const char* name, const int32_t& value) = 0;
-        // 
-
-
-
-        // Complex Axel types (Agnostic)
-        virtual void Property(const char* name,Vec2& value) = 0;
-        virtual void Property(const char* name,Vec3& value) = 0;
-        virtual void Property(const char* name,Vec4& value) = 0;
-
-		//Const version for complex types
-		virtual void Property(const char* name, const Vec2& value) = 0;
-		virtual void Property(const char* name, const Vec3& value) = 0;
-		virtual void Property(const char* name, const Vec4& value) = 0;
-
-
-		// Binary blob (for raw data, e.g., texture bytes)
-        virtual void BinaryBlob(const char* name, void* data, size_t size) = 0;
-
+        virtual void Property(const char* name, uint32_t& value) = 0;
+        virtual void Property(const char* name, int64_t& value) = 0;
+        virtual void Property(const char* name, uint64_t& value) = 0;
+        virtual void Property(const char* name, std::string& value) = 0;
+        virtual void Property(const char* name, UUID& value) = 0;
+        virtual void Binary(
+            const char* name,
+            std::span<std::byte> data
+        ) = 0;
 
         // Structure handling
         virtual bool BeginStruct(const char* name) = 0;
@@ -62,8 +38,11 @@ namespace Axel
 		// Collection handling (e.g., arrays, vectors)
         virtual bool BeginCollection(const char* name, uint32_t& size) = 0;
         virtual void NextItem() = 0;
+        virtual bool HasNext() = 0;
         virtual void EndCollection() = 0;
 
+        template<typename T>
+        static constexpr bool SupportsDirectProperty = false;
 
     };
 }

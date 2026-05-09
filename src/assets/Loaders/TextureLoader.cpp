@@ -22,7 +22,23 @@ std::shared_ptr<Axel::Texture2D> Axel::TextureLoader::Load(const std::string& pa
         return nullptr;
     }
     // Create the actual engine object (which sends data to the GPU)
-    Ref<Texture2D> texture = Texture2D::Create(width, height, data);
+    TextureCreationInfo info;
+    info.Width = width;
+    info.Height = height;
+
+    TextureFormatOptions format;
+
+    switch(channels)
+    {
+        case 1: format = TextureFormatOptions::R8;
+        case 2: format = TextureFormatOptions::RG8;
+        case 3: format = TextureFormatOptions::RGB8;
+        case 4: format = TextureFormatOptions::RGBA16F;
+    }
+
+    info.TextureFormat = format;
+    info.Data = data;
+    Ref<Texture2D> texture = Texture2D::Create(info);
 
     stbi_image_free(data);
     return texture;

@@ -21,6 +21,8 @@ namespace Axel
 		virtual void Serialize(IArchive& ar) override;
 
 		bool IsValid() const { return AssetType != AssetTypeOptions::None && !Path.empty(); }
+		virtual const char* GetName() { return Name.c_str(); }
+
 	};
 
 	class AX_API AssetRegister : public ISerialisable
@@ -56,11 +58,20 @@ namespace Axel
 
 		}
 
+		void Clear() {
+			m_NameMap.clear();
+			m_Registry.clear();
+			m_TypeCache.clear();
+			m_AssetCount = 0;
+		}
+
+		virtual const char* GetName() { return "Asset Registry"; }
+
 	private:
 		std::unordered_map<std::string, UUID> m_NameMap;
 		std::unordered_map<UUID, AssetMetadata> m_Registry;
 		std::unordered_map<AssetTypeOptions, std::vector<UUID>> m_TypeCache; // For quick lookups by type
-		
+		uint32_t m_AssetCount = 0;
 		struct RegistryImpl; // Forward declaration
 		RegistryImpl* m_Impl = nullptr; // Pimpl hides the yaml-cpp structures
 	};

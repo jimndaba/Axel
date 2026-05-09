@@ -2,40 +2,47 @@
 #ifndef VULKANDESCRIPTORSET_H
 #define VULKANDESCRIPTORSET_H
 
+#include <core/Core.h>
 #include <vulkan/vulkan.h>
 #include <rendering/DescriptorSet.h>
+#include <rendering/DescriptorSetLayout.h>
 #include "VulkanContext.h"
-
 
 namespace Axel
 {
-	class VulkanPipeline;
 	class VulkanDevice;
+	class VulkanDescriptorSetLayout;
 
-	class VulkanDescriptorSet : public DescriptorSet
+	class AX_API VulkanDescriptorSet : public DescriptorSet
 	{
 	public:
-		VulkanDescriptorSet(VulkanContext* ctxt, const Ref<VulkanPipeline>& pipeline, uint32_t setIndex);
-		~VulkanDescriptorSet() = default;
+		VulkanDescriptorSet(VulkanContext* ctxt, const Ref<DescriptorSetLayout>& layout);
+		~VulkanDescriptorSet() override = default;
 
+		virtual void SetData(const void* data, uint32_t size) override;
+		// API-agnostic interface
 		virtual void Write(const std::string& name, const Ref<UniformBuffer>& buffer) override;
 		virtual void Write(const std::string& name, const Ref<Texture2D>& texture) override;
 		virtual void Write(const std::string& name, const Ref<ShaderStorageBuffer>& buffer) override;
+
 		virtual void Update() override;
-		virtual void Destroy() override;	
+		virtual void Destroy() override;
 
 		VkDescriptorSet GetHandle() const { return m_DescriptorSet; }
+
 	private:
-		VkDescriptorSet m_DescriptorSet;
-		const Ref<VulkanPipeline> m_Pipeline;
-		uint32_t m_SetIndex;
-		
-		VulkanDevice& device; // Reference to the VulkanDevice for updates
-		VulkanContext* m_Context; // Store context for updates if needed
-		// Internal storage to track what needs to be updated
+		uint32_t GetBindingFromName(const std::string& name) const;
+
+	private:
+		VkDescriptorSet m_DescriptorSet = VK_NULL_HANDLE;
+
+		Ref<VulkanDescriptorSetLayout> m_Layout;		
+		VulkanContext* m_Context;
+
+		// Write tracking
 		std::vector<VkWriteDescriptorSet> m_Writes;
-		std::vector<VkDescriptorBufferInfo> m_BufferInfos; // Keep these alive until Update()
-		std::vector<VkDescriptorImageInfo> m_ImageInfos; // Keep these alive until Update()
+		std::vector<VkDescriptorBufferInfo> m_BufferInfos;
+		std::vector<VkDescriptorImageInfo> m_ImageInfos;
 	};
 }
 
